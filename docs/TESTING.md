@@ -2,6 +2,13 @@
 
 ## Steam Input check (no game launch)
 
+Caveat: Steam routes a controller to the app whose window has focus. The checker has
+no window, so with another game or the desktop focused Steam flips the pad between
+apps ("Queueing activation for controller: 0 app: ...") and the checker sees no
+origins and few actions. Treat the handle/manifest results as authoritative and use
+the in-game log (`data/ensign.log`: "controller connected", "origins for ...",
+"first press: ...") for binding verification.
+
     nix develop -c tools/check-steam-input.sh [--seconds N] [--virtual-pad]
 
 Builds `native/tools/steam_input_check.cpp`, copies `libsteam_api.so` from

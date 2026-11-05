@@ -30,13 +30,16 @@ launcher_with_block() {
         echo "error: no 'exec' line found in $launcher" >&2
         return 1
     fi
+    # LD_PRELOAD splits entries on spaces and colons, and the Steam install dir is
+    # "FTL Faster Than Light", so absolute paths cannot be used: cd into the data
+    # dir (the game expects that anyway) and preload by relative path.
     if [ "$with_ensign" = 1 ]; then
-        line="export LD_PRELOAD=\"\$here/$ENSIGN_SO:\$here/$HS_SO\${LD_PRELOAD:+:\$LD_PRELOAD}\""
+        line="export LD_PRELOAD=\"./$ENSIGN_SO:./$HS_SO\${LD_PRELOAD:+:\$LD_PRELOAD}\""
     else
-        line="export LD_PRELOAD=\"\$here/$HS_SO\${LD_PRELOAD:+:\$LD_PRELOAD}\""
+        line="export LD_PRELOAD=\"./$HS_SO\${LD_PRELOAD:+:\$LD_PRELOAD}\""
     fi
     head -n "$((n - 1))" "$stripped"
-    printf '%s\n%s\n%s\n' "$ENSIGN_BEGIN" "$line" "$ENSIGN_END"
+    printf '%s\n%s\n%s\n%s\n' "$ENSIGN_BEGIN" 'cd "$here"' "$line" "$ENSIGN_END"
     tail -n "+$n" "$stripped"
     rm -f "$stripped"
 }

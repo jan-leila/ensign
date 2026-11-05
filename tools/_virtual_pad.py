@@ -29,10 +29,12 @@ def axes(pairs, ms):
     for c, _ in pairs: ui.write(e.EV_ABS, c, 0)
     ui.syn(); time.sleep(0.2)
 
+import sys
+SAFE = "--safe" in sys.argv   # never press A/Start: safe to run against the real game at its main menu
 try:
     time.sleep(3)  # let Steam pick the device up
     while True:
-        key(e.BTN_SOUTH, 200)
+        if not SAFE: key(e.BTN_SOUTH, 200)
         key(e.BTN_EAST, 200)
         axes([(e.ABS_HAT0Y, -1)], 200)               # dpad up
         axes([(e.ABS_Y, 32767)], 500)                # left stick (0,+1) (down in evdev; Steam reports y=-1/+1 per its convention)

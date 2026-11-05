@@ -97,15 +97,18 @@ chmod 755 "$DATA/FTL"
 
 # ---- patched ftl.dat --------------------------------------------------------
 step "ftl.dat"
-if dat_has_entry "$PYTHON" "$TOOLS" "$REAL/data/ftl.dat" data/hyperspace.xml; then
-    echo "error: real ftl.dat already contains Hyperspace data; need a vanilla base" >&2; exit 1
+# After tools/install.sh the real ftl.dat is patched; the installer keeps the pristine copy.
+BASE_DAT="$REAL/data/ftl.dat"
+[ -f "$REAL/data/ftl.dat.vanilla" ] && BASE_DAT="$REAL/data/ftl.dat.vanilla"
+if dat_has_entry "$PYTHON" "$TOOLS" "$BASE_DAT" data/hyperspace.xml; then
+    echo "error: $BASE_DAT already contains Hyperspace data; need a vanilla base" >&2; exit 1
 fi
-STAMP="$(printf '%s\n' "$(stat -c '%s %Y' "$REAL/data/ftl.dat")" "$(stat -c '%s %Y' "$ZIP")" "$(sha256sum < "$ROOT/dist/Ensign.ftl")" | sha256sum | cut -d' ' -f1)"
+STAMP="$(printf '%s\n' "$(stat -c '%s %Y' "$BASE_DAT")" "$(stat -c '%s %Y' "$ZIP")" "$(sha256sum < "$ROOT/dist/Ensign.ftl")" | sha256sum | cut -d' ' -f1)"
 if [ -f "$DATA/ftl.dat" ] && [ "$(cat "$REPLICA/.ftl.dat.stamp" 2>/dev/null)" = "$STAMP" ]; then
     echo "reusing up-to-date $DATA/ftl.dat"
 else
     rm -f "$DATA/ftl.dat"
-    "$PYTHON" -I "$TOOLS/ftldat.py" patch --base "$REAL/data/ftl.dat" --out "$DATA/ftl.dat" "$DATA/Hyperspace.ftl" "$ROOT/dist/Ensign.ftl"
+    "$PYTHON" -I "$TOOLS/ftldat.py" patch --base "$BASE_DAT" --out "$DATA/ftl.dat" "$DATA/Hyperspace.ftl" "$ROOT/dist/Ensign.ftl"
     echo "$STAMP" > "$REPLICA/.ftl.dat.stamp"
 fi
 

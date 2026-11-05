@@ -36,6 +36,7 @@ static InputActionSetHandle_t g_currentSetHandle = 0;
 static float g_rumbleL = 0, g_rumbleR = 0;
 static double g_rumbleEnd = 0, g_rumbleLastSent = 0;
 static bool g_rumbleActive = false;
+static int g_originLogBudget = 0;   // log the first origin lookups after a connect (diagnostics)
 
 static bool resolve_steam_api() {
     if (p_GetHSteamUser && p_FindOrCreate) return true;
@@ -112,7 +113,8 @@ static void pick_controller() {
     if (!keep) {
         g_handle = handles[0];
         g_type = g_in->GetInputTypeForHandle(g_handle);
-        ensign::logf("controller connected: handle=%llu type=%d (%s)", (unsigned long long)g_handle, g_type, controller_type_name());
+        ensign::logf("controller connected: handle=%llu type=%d (%s) set=%s", (unsigned long long)g_handle, g_type, controller_type_name(), g_currentSet.c_str());
+        g_originLogBudget = 12;
         if (g_currentSetHandle) g_in->ActivateActionSet(g_handle, g_currentSetHandle);
     }
 }
@@ -275,6 +277,10 @@ bool origin(const std::string& name, int& originOut, std::string& textOut, std::
         auto a = g_anaHandles.find(name);
         if (a != g_anaHandles.end() && a->second)
             n = g_in->GetAnalogActionOrigins(g_handle, g_currentSetHandle, a->second, origins);
+    }
+    if (g_originLogBudget > 0) {
+        g_originLogBudget--;
+        ensign::logf("origins for %s in set %s: %d%s%s", name.c_str(), g_currentSet.c_str(), n, n > 0 ? " first=" : "", n > 0 ? (g_in->GetStringForActionOrigin(origins[0]) ? g_in->GetStringForActionOrigin(origins[0]) : "?") : "");
     }
     if (n <= 0) return false;
     originOut = (int)origins[0];

@@ -71,6 +71,7 @@ local function stickDirections()
     return stickDir
 end
 
+local loggedPress = {}
 function I.update()
     I.anyInput = false
     if E.native then
@@ -89,6 +90,7 @@ function I.update()
         if v and not prev[name] then
             pressedAt[name] = now
             repeatAt[name] = now + E.settings.repeatDelay
+            if not loggedPress[name] then loggedPress[name] = true; E.log("first press: " .. name .. " (set " .. I.currentSet .. ")") end
         end
         if v then I.anyInput = true end
     end

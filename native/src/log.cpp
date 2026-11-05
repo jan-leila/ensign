@@ -1,6 +1,7 @@
 #include "log.h"
 #include <cstdarg>
 #include <cstdio>
+#include <cstdlib>
 #include <ctime>
 #include <dlfcn.h>
 #include <mutex>
@@ -49,7 +50,9 @@ double now_seconds() {
 std::string self_dir() {
     Dl_info info;
     if (dladdr((void*)&self_dir, &info) && info.dli_fname) {
-        std::string p = info.dli_fname;
+        // the launcher preloads us by a relative path; Steam needs absolute paths
+        char resolved[4096];
+        std::string p = realpath(info.dli_fname, resolved) ? resolved : info.dli_fname;
         auto slash = p.rfind('/');
         if (slash != std::string::npos) return p.substr(0, slash);
     }

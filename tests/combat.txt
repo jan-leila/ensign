@@ -1,0 +1,82 @@
+wait 6
+focus button 0
+press select
+wait_screen shipbuilder 10
+focus button 1
+press select
+wait 3
+focus choice 0
+press select
+wait 1
+focus choice 0
+press select
+wait_screen game 6
+fakepad xbox
+shot game_ship
+log --- force a hostile encounter
+event PIRATE
+wait 2
+dump
+focus choice 0
+press select
+wait 2
+dump
+shot combat_event
+wait_screen game 8
+dump
+log --- enemy panel
+press focus_toggle
+wait 0.5
+dump
+shot combat_enemy
+nav right
+wait 0.4
+nav down
+wait 0.4
+dump
+log --- power weapons, arm laser (slot 1), target enemy room
+power 3 2
+press pause
+wait 0.3
+panel weapons
+wait 0.3
+focus armament 1
+wait 0.3
+dump
+press select
+wait 0.6
+dump
+shot combat_targeting
+press select
+wait 0.8
+dump
+log --- beam: add a beam weapon in slot 2 and aim two points
+addweapon BEAM_1 2
+wait 0.5
+panel weapons
+wait 0.3
+focus armament 0
+wait 0.3
+press alt
+wait 0.5
+focus armament 2
+wait 0.3
+press select
+wait 0.6
+dump
+press select
+wait 0.4
+dump
+nav right
+wait 0.3
+nav down
+wait 0.3
+shot combat_beam
+dump
+press select
+wait 0.8
+dump
+press back
+wait 0.5
+dump
+end

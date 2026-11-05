@@ -1,0 +1,65 @@
+wait 6
+focus button 0
+press select
+wait_screen shipbuilder 10
+focus button 1
+press select
+wait 3
+focus choice 0
+press select
+wait 1
+focus choice 0
+press select
+wait_screen game 6
+fakepad xbox
+press pause
+wait 0.3
+log --- ship screens via the top bar
+panel top
+wait 0.3
+focus topbar 0
+wait 0.3
+press select
+wait 1
+probe
+dump
+shot upgrades
+nav down
+wait 0.4
+press select
+wait 0.5
+dump
+press panel_next
+wait 0.6
+probe
+dump
+shot crew_manifest
+press panel_next
+wait 0.6
+probe
+dump
+shot equipment
+press back
+wait 1
+dump
+log --- options via the pause menu
+press game_menu
+wait 1
+focus button 4
+wait 0.3
+press select
+wait 1
+dump
+shot options
+nav down
+wait 0.4
+nav down
+wait 0.4
+dump
+press back
+wait 1
+dump
+press back
+wait 1
+dump
+end

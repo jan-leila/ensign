@@ -19,6 +19,7 @@
             binutils
             gdb
             patchelf
+            zig  # portable build: glibc-version-targeted cross compile
 
             # Lua
             lua5_3
@@ -41,6 +42,7 @@
             # headless smoke tests
             xvfb-run
             steam-run
+            xwd
             mesa
             libglvnd
           ];

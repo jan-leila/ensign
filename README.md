@@ -77,9 +77,15 @@ tools/uninstall.sh
 ```
 
 The headless runner builds a replica of the game directory in
-`~/.cache/ensign/replica`, never touching the real install, and reports the
-native log (`ensign.log`) and the driver output (`ensign_test_out.txt`).
-Steam Input itself only works when the game is launched through Steam.
+`~/.cache/ensign/replica` (override with `ENSIGN_REPLICA` to run several in
+parallel), never touching the real install, and reports the native log
+(`ensign.log`), the driver output (`ensign_test_out.txt`) and screenshots
+requested by the script (`shot <name>`). The driver can force game states
+(`event PIRATE`, `event STORE`, `addweapon BEAM_1 2`, `power 3 2`, `panel
+weapons`, `fakepad xbox`); see `mod/data/ensign/80_dev.lua`. `tools/check-steam-input.sh`
+talks to the running Steam client with the real manifest (optionally with a
+virtual Xbox pad); see `docs/TESTING.md`. Steam Input inside the game only
+works when it is launched through Steam.
 
 ## Repository layout
 

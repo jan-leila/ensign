@@ -1,0 +1,31 @@
+wait 6
+focus button 0
+press select
+wait_screen shipbuilder 10
+focus button 1
+press select
+wait 3
+focus choice 0
+press select
+wait 1
+focus choice 0
+press select
+wait_screen game 6
+fakepad xbox
+log --- wait for the FTL drive then open the map
+wait 25
+press jump
+wait_screen starmap 10
+dump
+shot starmap
+focus location 2
+wait 0.4
+dump
+shot starmap_selected
+press select
+wait 3
+dump
+shot after_jump
+wait 6
+dump
+end

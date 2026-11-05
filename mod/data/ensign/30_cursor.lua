@@ -115,8 +115,8 @@ function C.drawFrame(h, color, pad)
     WHITE = WHITE or Graphics.GL_Color(1, 1, 1, 1)
     color = color or WHITE
     local x, y, w, hh = h.x - pad, h.y - pad, h.w + pad * 2, h.h + pad * 2
-    local tl, tr, bl, br = img("img/ensign/ui/corner_tl.png"), img("img/ensign/ui/corner_tr.png"),
-                           img("img/ensign/ui/corner_bl.png"), img("img/ensign/ui/corner_br.png")
+    local tl, tr, bl, br = img("ensign/ui/corner_tl.png"), img("ensign/ui/corner_tr.png"),
+                           img("ensign/ui/corner_bl.png"), img("ensign/ui/corner_br.png")
     if tl and tr and bl and br then
         local B = Graphics.CSurface.GL_BlitImage
         B(tl, x, y, 10, 10, 0, color, false)

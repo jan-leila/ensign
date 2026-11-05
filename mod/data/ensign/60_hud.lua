@@ -29,7 +29,7 @@ function H.drawHints(hints, y)
     local total = 0
     for _, h in ipairs(hints) do
         local glyph, text = E.input.glyph(h[1])
-        local tex = glyph and E.img("img/ensign/glyphs/" .. glyph .. ".png") or nil
+        local tex = glyph and E.img("ensign/glyphs/" .. glyph .. ".png") or nil
         local label = h[2]
         local w = (tex and 28 or 0) + 4 + Graphics.freetype.easy_measureWidth(FONT_SMALL, label) + 14
         if not tex then

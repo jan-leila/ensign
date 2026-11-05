@@ -1,0 +1,37 @@
+wait 6
+focus button 0
+press select
+wait_screen shipbuilder 10
+focus button 1
+press select
+wait 3
+focus choice 0
+press select
+wait 1
+focus choice 0
+press select
+wait_screen game 6
+fakepad xbox
+event STORE
+wait 2
+dump
+focus choice 0
+press select
+wait 2
+dump
+wait_screen store 8
+dump
+shot store
+nav down
+wait 0.4
+nav right
+wait 0.4
+dump
+press panel_next
+wait 0.6
+dump
+shot store_tab2
+press back
+wait 1
+dump
+end

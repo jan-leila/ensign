@@ -36,6 +36,45 @@ const char* cstr(const TextString& t) { return cstr(t.data); }
 
 CApp* app() { return (p_cApp && *p_cApp) ? *p_cApp : nullptr; }
 
+// ---- CommandGui tail calibration --------------------------------------------
+// The IDA layout of `Upgrades` is 8 bytes larger than the real object, so every
+// CommandGui member after `upgradeScreen` sits earlier than the header says.
+// The ship-screens TabbedWindow holds real pointers to crewScreen/equipScreen,
+// which lets us measure the shift at runtime instead of trusting the header.
+static long gui_tail_delta(CommandGui* gui) {
+    static long cached = 0;
+    static CommandGui* cachedFor = nullptr;
+    if (gui == cachedFor) return cached;
+    if (vsize(gui->shipScreens.windows) >= 2 && gui->shipScreens.windows._start[1]) {
+        long d = (char*)gui->shipScreens.windows._start[1] - (char*)&gui->crewScreen;
+        if (d > -64 && d < 64) { cached = d; cachedFor = gui; ensign::logf("CommandGui tail delta measured: %ld bytes", d); }
+    }
+    return cached;
+}
+template <class T> static T* tail(CommandGui* gui, T* p) { return (T*)((char*)p + gui_tail_delta(gui)); }
+#define GUI_TAIL(gui, member) (*tail(gui, &(gui)->member))
+
+// Hyperspace keeps the upgrade boxes in its own paged container (CustomUpgrades).
+// Mirror of the relevant part of Hyperspace 1.23's layout; validated at runtime
+// by checking that `orig` points at the game's Upgrades screen.
+struct HS_UpgradeBoxSet {
+    std::vector<std::vector<UpgradeBox*>> boxes;
+    void* leftButton; void* rightButton;
+    int currentPage;
+    Upgrades* orig;
+};
+struct HS_CustomUpgrades {
+    Upgrades* orig; void* renameInput; bool allowRename; bool allowButton;
+    HS_UpgradeBoxSet systemBoxes;
+    HS_UpgradeBoxSet subSystemBoxes;
+    void* renameButton;
+};
+static HS_CustomUpgrades* hs_custom_upgrades() {
+    static HS_CustomUpgrades* p = (HS_CustomUpgrades*)dlsym(RTLD_DEFAULT, "_ZN14CustomUpgrades8instanceE");
+    return p;
+}
+
+
 void add_rect(std::vector<game::Hit>& out, const char* kind, int id, int x, int y, int w, int h,
               const std::string& label = "", bool enabled = true, int extra = 0) {
     if (w <= 0 || h <= 0 || w > 1400 || h > 800 || x < -200 || y < -200 || x > 1500 || y > 900) return;
@@ -116,8 +155,8 @@ bool store_window(CommandGui* gui, Store*& storeOut) {
     size_t n = vsize(tw.windows);
     for (size_t i = 0; i < n; i++) {
         FocusWindow* w = tw.windows._start[i];
-        if (w && w != (FocusWindow*)&gui->equipScreen && w != (FocusWindow*)&gui->upgradeScreen &&
-            w != (FocusWindow*)&gui->crewScreen) { storeOut = (Store*)w; return true; }
+        if (w && w != (FocusWindow*)tail(gui, &gui->equipScreen) && w != (FocusWindow*)&gui->upgradeScreen &&
+            w != (FocusWindow*)tail(gui, &gui->crewScreen)) { storeOut = (Store*)w; return true; }
     }
     return false;
 }
@@ -130,8 +169,9 @@ void add_store(std::vector<game::Hit>& out, CommandGui* gui) {
     for (size_t i = 0; i < nb; i++) if (tw.buttons._start[i]) add_button(out, tw.buttons._start[i]->_base, "tab", (int)i, "", (int)tw.currentTab);
     add_textbutton(out, tw.doneButton, "close", 200);
     FocusWindow* cur = (tw.currentTab < vsize(tw.windows)) ? tw.windows._start[tw.currentTab] : nullptr;
-    if (cur == (FocusWindow*)&gui->equipScreen || cur == nullptr) {
-        add_equipment_boxes(out, gui->equipScreen.vEquipmentBoxes, "equip");
+    Equipment& eq = GUI_TAIL(gui, equipScreen);
+    if (cur == (FocusWindow*)&eq || cur == nullptr) {
+        add_equipment_boxes(out, eq.vEquipmentBoxes, "equip");
     }
     if (st && (cur == (FocusWindow*)st || cur == nullptr)) {
         size_t n = vsize(st->vStoreBoxes);
@@ -150,29 +190,46 @@ void add_store(std::vector<game::Hit>& out, CommandGui* gui) {
         add_button(out, st->page2._base, "tab", 11, "page2");
         add_button(out, st->exitButton._base, "close", 201);
         // the ship's own equipment is shown alongside the store
-        add_equipment_boxes(out, gui->equipScreen.vEquipmentBoxes, "equip");
+        add_equipment_boxes(out, eq.vEquipmentBoxes, "equip");
     }
 }
 
 void add_ship_screens(std::vector<game::Hit>& out, CommandGui* gui) {
     const TabbedWindow& tw = gui->shipScreens;
-    if (is_open(gui->crewScreen.deleteDialog._base)) { add_confirm(out, gui->crewScreen.deleteDialog); return; }
+    CrewManifest& cm = GUI_TAIL(gui, crewScreen);
+    Equipment& eq = GUI_TAIL(gui, equipScreen);
+    if (is_open(cm.deleteDialog._base)) { add_confirm(out, cm.deleteDialog); return; }
     size_t nb = vsize(tw.buttons);
     for (size_t i = 0; i < nb; i++) if (tw.buttons._start[i]) add_button(out, tw.buttons._start[i]->_base, "tab", (int)i, "", (int)tw.currentTab);
     add_textbutton(out, tw.doneButton, "close", 200);
     FocusWindow* cur = (tw.currentTab < vsize(tw.windows)) ? tw.windows._start[tw.currentTab] : nullptr;
     if (cur == (FocusWindow*)&gui->upgradeScreen) {
         const Upgrades& up = gui->upgradeScreen;
+        int added = 0;
+        HS_CustomUpgrades* cu = hs_custom_upgrades();
+        if (cu && cu->orig == &gui->upgradeScreen) {
+            const HS_UpgradeBoxSet* sets[2] = { &cu->systemBoxes, &cu->subSystemBoxes };
+            for (int s = 0; s < 2; s++) {
+                const HS_UpgradeBoxSet& set = *sets[s];
+                if (set.currentPage < 0 || (size_t)set.currentPage >= set.boxes.size()) continue;
+                for (UpgradeBox* b : set.boxes[set.currentPage]) {
+                    if (!sane_ptr(b) || b->isDummy) continue;
+                    const GenericButton& gb = b->boxButton._base;
+                    if (gb.hitbox.w > 0 && gb.hitbox.h > 0) add_rect(out, "upgrade", added, gb.hitbox.x, gb.hitbox.y, gb.hitbox.w, gb.hitbox.h, b->system ? cstr(b->system->name) : "", true, s);
+                    else add_rect(out, "upgrade", added, b->location.x, b->location.y, 62, s == 0 ? 150 : 115, b->system ? cstr(b->system->name) : "", true, s);
+                    added++;
+                }
+            }
+        }
         size_t n = vsize(up.vUpgradeBoxes);
-        for (size_t i = 0; i < n; i++) {
+        for (size_t i = 0; i < n && added == 0; i++) {
             UpgradeBox* b = up.vUpgradeBoxes._start[i];
             if (!b || b->isDummy) continue;
             add_button(out, b->boxButton._base, "upgrade", (int)i, b->system ? cstr(b->system->name) : "", b->subsystem);
         }
         add_button(out, up.reactorButton._base._base, "upgrade", 100, "reactor");
         add_textbutton(out, up.undoButton, "button", 101);
-    } else if (cur == (FocusWindow*)&gui->crewScreen) {
-        const CrewManifest& cm = gui->crewScreen;
+    } else if (cur == (FocusWindow*)&cm) {
         size_t n = vsize(cm.crewBoxes);
         for (size_t i = 0; i < n; i++) {
             CrewEquipBox* b = cm.crewBoxes._start[i];
@@ -183,7 +240,7 @@ void add_ship_screens(std::vector<game::Hit>& out, CommandGui* gui) {
             if (b->bShowRename) add_textbutton(out, b->renameButton, "button", 400 + (int)i);
         }
     } else {
-        add_equipment_boxes(out, gui->equipScreen.vEquipmentBoxes, "equip");
+        add_equipment_boxes(out, eq.vEquipmentBoxes, "equip");
     }
 }
 
@@ -241,9 +298,9 @@ void add_ingame(std::vector<game::Hit>& out, CApp* a) {
 #define T(s) do { if (trace) ensign::logf("  ingame: %s", s); } while (0)
     T("topbar");
     // top bar
-    add_imgbutton(out, gui->upgradeButton, "topbar", 0, "ship");
-    add_textbutton(out, gui->storeButton, "topbar", 1);
-    add_imgbutton(out, gui->optionsButton, "topbar", 2, "options");
+    add_imgbutton(out, GUI_TAIL(gui, upgradeButton), "topbar", 0, "ship");
+    add_textbutton(out, GUI_TAIL(gui, storeButton), "topbar", 1);
+    add_imgbutton(out, GUI_TAIL(gui, optionsButton), "topbar", 2, "options");
     add_button(out, gui->ftlButton._base._base, "ftl", 0, "FTL", gui->ftlButton.ready ? 1 : 0);
     T("sysboxes");
     const SystemControl& sc = gui->sysControl;
@@ -438,10 +495,10 @@ std::string screen() {
     if (is_open(gui->menuBox._base)) return is_open(gui->menuBox.confirmDialog._base) ? "confirm" : "pausemenu";
     if (is_open(gui->optionsBox._base._base)) return "options";
     if (is_open(gui->inputBox._base)) return "input";
-    if (is_open(gui->leaveCrewDialog._base)) return "confirm";
+    if (is_open(GUI_TAIL(gui, leaveCrewDialog)._base)) return "confirm";
+    if (is_open(gui->choiceBox._base)) return "event";   // modal over everything else
     if (is_open(gui->storeScreens._base)) return "store";
     if (is_open(gui->shipScreens._base)) return "shipscreens";
-    if (is_open(gui->choiceBox._base)) return "event";
     if (gui->starMap && gui->starMap->_base.bOpen) return "starmap";
     return "game";
 }
@@ -489,10 +546,10 @@ void hitboxes(std::vector<Hit>& out) {
     }
     if (is_open(gui->optionsBox._base._base)) { add_options(out, gui->optionsBox); return; }
     if (is_open(gui->inputBox._base)) return;
-    if (is_open(gui->leaveCrewDialog._base)) { add_confirm(out, gui->leaveCrewDialog); return; }
+    if (is_open(GUI_TAIL(gui, leaveCrewDialog)._base)) { add_confirm(out, GUI_TAIL(gui, leaveCrewDialog)); return; }
+    if (is_open(gui->choiceBox._base)) { add_choicebox(out, gui->choiceBox); return; }
     if (is_open(gui->storeScreens._base)) { add_store(out, gui); return; }
     if (is_open(gui->shipScreens._base)) { add_ship_screens(out, gui); return; }
-    if (is_open(gui->choiceBox._base)) { add_choicebox(out, gui->choiceBox); return; }
     if (gui->starMap && gui->starMap->_base.bOpen) { add_starmap(out, *gui->starMap); return; }
     add_ingame(out, a);
 }
@@ -571,7 +628,32 @@ std::string dev_probe() {
             g->sysControl.position.x, g->sysControl.position.y,
             g->spaceStatus.hitbox.x, g->spaceStatus.hitbox.y, g->spaceStatus.hitbox.w, g->spaceStatus.hitbox.h);
         (void)k; s += buf;
+        // ship screens internals
+        const Upgrades& up = g->upgradeScreen;
+        k = snprintf(buf, sizeof buf, "upgrades: open=%d boxes=%zu systemCount=%d\n", (int)is_open(up._base), vsize(up.vUpgradeBoxes), up.systemCount);
+        s += buf;
+        for (size_t i = 0; i < vsize(up.vUpgradeBoxes) && i < 12; i++) {
+            UpgradeBox* b = up.vUpgradeBoxes._start[i];
+            if (!b) continue;
+            k = snprintf(buf, sizeof buf, "  ub%zu loc=%d,%d dummy=%d sub=%d cur=%p box.hit=%d,%d,%d,%d box.pos=%d,%d max.hit=%d,%d,%d,%d sys=%p\n", i, b->location.x, b->location.y, (int)b->isDummy, (int)b->subsystem, (void*)b->currentButton,
+                b->boxButton._base.hitbox.x, b->boxButton._base.hitbox.y, b->boxButton._base.hitbox.w, b->boxButton._base.hitbox.h, b->boxButton._base.position.x, b->boxButton._base.position.y,
+                b->maxButton._base.hitbox.x, b->maxButton._base.hitbox.y, b->maxButton._base.hitbox.w, b->maxButton._base.hitbox.h, (void*)b->system);
+            s += buf;
+        }
+        k = snprintf(buf, sizeof buf, "equip: open=%d boxes=%zu storeMode=%d | crewScreen: open=%d boxes=%zu | shipScreens.windows=%zu tab=%u [%p %p %p] equip=%p up=%p crew=%p\n",
+            (int)is_open(g->equipScreen._base), vsize(g->equipScreen.vEquipmentBoxes), (int)g->equipScreen.bStoreMode, (int)is_open(g->crewScreen._base), vsize(g->crewScreen.crewBoxes),
+            vsize(g->shipScreens.windows), g->shipScreens.currentTab,
+            vsize(g->shipScreens.windows) > 0 ? (void*)g->shipScreens.windows._start[0] : nullptr, vsize(g->shipScreens.windows) > 1 ? (void*)g->shipScreens.windows._start[1] : nullptr, vsize(g->shipScreens.windows) > 2 ? (void*)g->shipScreens.windows._start[2] : nullptr,
+            (void*)&g->equipScreen, (void*)&g->upgradeScreen, (void*)&g->crewScreen);
+        s += buf;
+        for (size_t i = 0; i < vsize(g->equipScreen.vEquipmentBoxes) && i < 4; i++) {
+            EquipmentBox* b = g->equipScreen.vEquipmentBoxes._start[i];
+            if (!b) continue;
+            k = snprintf(buf, sizeof buf, "  eq%zu loc=%d,%d hit=%d,%d,%d,%d slot=%d\n", i, b->location.x, b->location.y, b->hitBox.x, b->hitBox.y, b->hitBox.w, b->hitBox.h, b->slot);
+            s += buf;
+        }
     }
     return s;
 }
 }
+

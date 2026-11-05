@@ -41,6 +41,8 @@ local function gameState()
         s = s .. " armed=" .. (w and w.blueprint.name or "nil")
         if ship and ship.shieldSystem then s = s .. " shieldsPower=" .. tostring(ship.shieldSystem.powerState.first) end
         s = s .. " crewMode=" .. tostring(E.game.roomCrewMode) .. " targeting=" .. tostring(E.game.targeting)
+        s = s .. " aimPts=" .. tostring(gui.combatControl.aimingPoints:size()) .. " movingBeam=" .. tostring(gui.combatControl.movingBeam)
+        if w then s = s .. " wTargets=" .. tostring(w.targets:size()) end
         if ship and ship.weaponSystem then s = s .. " weaponsPower=" .. tostring(ship.weaponSystem.powerState.first) end
         s = s .. " hoverW0=" .. tostring(Ensign.armamentHover(3, 0)) .. " hoverW1=" .. tostring(Ensign.armamentHover(3, 1)) .. " hoverSys3=" .. tostring(Ensign.sysboxHover(3))
         local list = ship.vCrewList
@@ -90,7 +92,47 @@ function D.update()
         if s == a1 then emit("PASS wait_screen " .. a1)
         elseif (tonumber(a2) or 10) > 0 then idx = idx - 1; lines[idx] = string.format("wait_screen %s %d", a1, (tonumber(a2) or 10) - 1); waitUntil = E.time + 1
         else emit("FAIL wait_screen " .. a1 .. " (got " .. s .. ")") end
+    elseif cmd == "panel" then E.game.setPanel(a1); emit("panel " .. a1)
     elseif cmd == "probe" then Ensign.devProbe(); emit("probe written to ensign.log")
+    elseif cmd == "event" then
+        -- force a game event (e.g. PIRATE for a hostile ship, STORE for a shop)
+        local ok, err = pcall(function()
+            Hyperspace.CustomEventsParser.GetInstance():LoadEvent(Hyperspace.App.world, a1, false, -1)
+        end)
+        emit("event " .. a1 .. " -> " .. tostring(ok) .. " " .. tostring(err or ""))
+    elseif cmd == "addweapon" then
+        local ok, err = pcall(function()
+            local bp = Hyperspace.Blueprints:GetWeaponBlueprint(a1)
+            Hyperspace.ships.player:AddWeapon(bp, tonumber(a2) or -1)
+        end)
+        emit("addweapon " .. a1 .. " -> " .. tostring(ok) .. " " .. tostring(err or ""))
+    elseif cmd == "addsystem" then
+        local ok, err = pcall(function() Hyperspace.ships.player:AddSystem(tonumber(a1)) end)
+        emit("addsystem " .. a1 .. " -> " .. tostring(ok) .. " " .. tostring(err or ""))
+    elseif cmd == "power" then
+        -- power <systemId> <amount>: add reactor power to a system directly
+        local ok, err = pcall(function()
+            local sys = Hyperspace.ships.player:GetSystem(tonumber(a1))
+            for _ = 1, tonumber(a2) or 1 do sys:IncreasePower(1, false) end
+        end)
+        emit("power " .. rest .. " -> " .. tostring(ok) .. " " .. tostring(err or ""))
+    elseif cmd == "shot" then
+        -- ask the harness for a screenshot; the request file disappears once taken
+        Ensign.devWriteFile("ensign_shot_request", a1)
+        local deadline = E.time + 3
+        idx = idx - 1
+        lines[idx] = "shot_wait " .. a1 .. " " .. string.format("%.2f", deadline)
+        waitUntil = E.time + 0.2
+    elseif cmd == "shot_wait" then
+        if Ensign.devReadFile("ensign_shot_request") == nil then emit("shot " .. a1 .. " taken")
+        elseif E.time > (tonumber(a2) or 0) then emit("WARN shot " .. a1 .. " not taken (no harness poller?)")
+        else idx = idx - 1; waitUntil = E.time + 0.2 end
+    elseif cmd == "fakepad" then
+        -- pretend a controller is attached so the HUD draws (glyphs from a fixed family)
+        E.input.fakeFamily = a1 ~= "" and a1 or "xbox"
+        E.input.connected = true
+        E.input.lastDevice = "pad"
+        emit("fakepad " .. E.input.fakeFamily)
     elseif cmd == "dump" then dump()
     elseif cmd == "log" then emit(rest)
     elseif cmd == "fail" then emit("FAIL " .. rest)

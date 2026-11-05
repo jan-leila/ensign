@@ -21,6 +21,26 @@ end
 local navigable = {
     starmap = kinds("location", "button", "close", "sector"),
 }
+-- Preferred kinds to land on when a screen (or a tab) opens
+local preferred = {
+    shipscreens = { "upgrade", "crewequip", "equip" },
+    store = { "store", "storeitem", "equip" },
+    starmap = { "location" },
+    options = { "choice" },
+    event = { "choice" },
+    shipbuilder = { "button" },
+}
+local function preferredHit(screen, hits)
+    for _, k in ipairs(preferred[screen] or {}) do
+        for _, h in ipairs(hits) do if h.kind == k and h.enabled ~= false then return h end end
+    end
+    return nil
+end
+local lastTab = nil
+local function currentTab(hits)
+    for _, h in ipairs(hits) do if h.kind == "tab" and h.id < 10 then return h.extra end end
+    return nil
+end
 
 local function clickFocus(button, opts)
     if C.mode == "free" or not C.focus then
@@ -62,15 +82,22 @@ function M.update(screen)
         -- new screen: focus the most sensible default
         C.focus = nil
         M.lastScreen = screen
-        local def = findHit("confirm_yes") or findHit("choice", 0) or findHit("location") or findHit("button", 0)
+        local def = findHit("confirm_yes") or preferredHit(screen, cands) or findHit("choice", 0) or findHit("button", 0)
         if def and screen ~= "starmap" then C.snapTo(def) end
+        lastTab = currentTab(M.hits)
         if screen == "starmap" then
             -- start on the beacon we are at
             for _, h in ipairs(cands) do if h.kind == "location" and h.extra % 2 == 1 then C.snapTo(h) end end
         end
     else
+        local tab = currentTab(M.hits)
+        if tab ~= lastTab then
+            lastTab = tab
+            local def = preferredHit(screen, cands)
+            if def then C.snapTo(def) end
+        end
         C.focus = N.refresh(C.focus, cands)
-        if not C.focus and C.mode == "snap" and #cands > 0 then C.snapTo(N.nearest(C.x, C.y, cands)) end
+        if not C.focus and C.mode == "snap" and #cands > 0 then C.snapTo(preferredHit(screen, cands) or N.nearest(C.x, C.y, cands)) end
     end
 
     -- analog cursor
@@ -141,7 +168,7 @@ function M.update(screen)
     local hint = { { "nav_up", "Navigate" }, { "select", "Select" } }
     if screen == "confirm" then hint[#hint + 1] = { "back", "No" }
     elseif screen == "starmap" then
-        hint[#hint + 1] = { "jump", "Jump" }; hint[#hint + 1] = { "pause", "Wait" }; hint[#hint + 1] = { "back", "Close map" }
+        hint = { { "nav_up", "Beacon" }, { "select", "Jump there" }, { "pause", "Wait" }, { "back", "Close map" } }
     elseif screen == "store" or screen == "shipscreens" then
         hint[#hint + 1] = { "panel_next", "Tab" }; hint[#hint + 1] = { "alt", "Alt" }; hint[#hint + 1] = { "back", "Close" }
     elseif screen == "options" or screen == "pausemenu" or screen == "scores" then

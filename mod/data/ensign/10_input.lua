@@ -74,7 +74,7 @@ end
 function I.update()
     I.anyInput = false
     if E.native then
-        I.connected = Ensign.poll()
+        I.connected = Ensign.poll() or (I.fakeFamily ~= nil)
     end
     local now = E.time
     local sd = stickDirections()
@@ -135,11 +135,36 @@ end
 -- dev harness hooks
 function I.virtualPress(name, ticks) virtual[name] = ticks or 2 end
 
+-- Fixed fallback glyphs per family, used when Steam has no binding to report
+-- (or by the headless harness via `fakepad`).
+local FALLBACK = {
+    xbox = { select = "xbox_a", back = "xbox_b", alt = "xbox_x", info = "xbox_y", panel_prev = "xbox_lb", panel_next = "xbox_rb",
+             power_up = "xbox_rt", power_down = "xbox_lt", pause = "xbox_menu", game_menu = "xbox_view", jump = "stick_r_click",
+             crew_all = "stick_l_click", nav_up = "dpad", nav_move = "stick_l", cursor_move = "stick_r", focus_toggle = "unknown" },
+    ps = { select = "ps_cross", back = "ps_circle", alt = "ps_square", info = "ps_triangle", panel_prev = "ps_l1", panel_next = "ps_r1",
+           power_up = "ps_r2", power_down = "ps_l2", pause = "ps_options", game_menu = "ps_share", jump = "stick_r_click",
+           crew_all = "stick_l_click", nav_up = "dpad", nav_move = "stick_l", cursor_move = "stick_r" },
+    nin = { select = "nin_a", back = "nin_b", alt = "nin_x", info = "nin_y", panel_prev = "nin_l", panel_next = "nin_r",
+            power_up = "nin_zr", power_down = "nin_zl", pause = "nin_plus", game_menu = "nin_minus", jump = "stick_r_click",
+            crew_all = "stick_l_click", nav_up = "dpad", nav_move = "stick_l", cursor_move = "stick_r" },
+    deck = { select = "deck_a", back = "deck_b", alt = "deck_x", info = "deck_y", panel_prev = "deck_l1", panel_next = "deck_r1",
+             power_up = "deck_r2", power_down = "deck_l2", pause = "deck_menu", game_menu = "deck_view", jump = "stick_r_click",
+             crew_all = "stick_l_click", nav_up = "dpad", nav_move = "stick_l", cursor_move = "pad_r", doors_open = "deck_l4",
+             doors_close = "deck_r4", autofire = "deck_l5", focus_toggle = "deck_r5" },
+}
+I.fakeFamily = nil
+
 function I.glyph(name)
-    if not E.native then return nil end
-    local o, text, glyph = Ensign.origin(resolve(name))
-    if not o then return nil end
-    return glyph, text
+    if E.native and not I.fakeFamily then
+        local o, text, glyph = Ensign.origin(resolve(name))
+        if o then return glyph, text end
+    end
+    local family = I.fakeFamily
+    if not family and E.native then local _, _, f = Ensign.controllerType(); family = f end
+    local tab = FALLBACK[family or "xbox"] or FALLBACK.xbox
+    local g = tab[name]
+    if g then return g, name end
+    return nil
 end
 
 function I.register()

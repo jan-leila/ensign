@@ -362,3 +362,4 @@ function G.render()
 end
 
 function G.panelLabel() return PANEL_LABEL[G.panel] or "" end
+function G.setPanel(name) I, C, N = E.input, E.cursor, E.nav; setPanel(name) end

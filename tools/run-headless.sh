@@ -122,10 +122,14 @@ rm -f "$DATA"/FTL.log "$DATA"/FTL_HS.log "$DATA"/zhl.log "$DATA"/ensign.log
 envs=(LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe ENSIGN_DEV=1 SDL_AUDIODRIVER=dummy
       XDG_DATA_HOME="$XDG" ENSIGN_REPLICA_RUN=1 ${ENSIGN_TRACE:+ENSIGN_TRACE=1})
 [ -n "$SCRIPT" ] && envs+=(ENSIGN_TEST_SCRIPT="$SCRIPT")
+TS="$(date +%Y%m%d-%H%M%S)"
+OUT="$REPLICA/logs/$TS"; mkdir -p "$OUT"
+envs+=(SHOT_DATA="$DATA" SHOT_OUT="$OUT")
+rm -f "$DATA/ensign_shot_request"
 START=$(date +%s)
 set +e
 (cd "$REPLICA" && env "${envs[@]}" timeout --signal=TERM --kill-after=5 "$SECONDS_RUN" \
-    xvfb-run -a -s "-screen 0 1280x720x24" steam-run "$REPLICA/FTL" "${EXTRA[@]}" \
+    xvfb-run -a -s "-screen 0 1280x720x24" "$TOOLS/_headless_shot.sh" "$REPLICA/FTL" "${EXTRA[@]}" \
     > "$REPLICA/stdout.txt" 2>&1)
 RC=$?
 set -e
@@ -133,8 +137,6 @@ ELAPSED=$(( $(date +%s) - START ))
 pkill -f "$REPLICA/data/FTL.amd64" 2>/dev/null || true
 
 # ---- collect ----------------------------------------------------------------
-TS="$(date +%Y%m%d-%H%M%S)"
-OUT="$REPLICA/logs/$TS"; mkdir -p "$OUT"
 for f in FTL.log FTL_HS.log zhl.log ensign.log; do [ -f "$DATA/$f" ] && cp "$DATA/$f" "$OUT/"; done
 cp "$REPLICA/stdout.txt" "$OUT/"
 [ -d "$XDG/FasterThanLight" ] && ls -la "$XDG/FasterThanLight" > "$OUT/xdg-listing.txt"

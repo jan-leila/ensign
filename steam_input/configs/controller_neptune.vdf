@@ -1,0 +1,741 @@
+"controller_mappings"
+{
+	"version"		"3"
+	"revision"		"1"
+	"title"		"Ensign default - neptune"
+	"description"		"Default Ensign (FTL) controller layout"
+	"controller_type"		"controller_neptune"
+	"actions"
+	{
+		"InGame"
+		{
+			"title"		"#Set_InGame"
+			"legacy_set"		"0"
+			"StickPadGyro"
+			{
+				"nav_move"
+				{
+					"title"		"#Action_nav_move"
+					"input_mode"		"joystick_move"
+				}
+				"cursor_move"
+				{
+					"title"		"#Action_cursor_move"
+					"input_mode"		"absolute_mouse"
+				}
+			}
+			"Button"
+			{
+				"nav_up"		"#Action_nav_up"
+				"nav_down"		"#Action_nav_down"
+				"nav_left"		"#Action_nav_left"
+				"nav_right"		"#Action_nav_right"
+				"select"		"#Action_select"
+				"back"		"#Action_back"
+				"alt"		"#Action_alt"
+				"info"		"#Action_info"
+				"panel_prev"		"#Action_panel_prev"
+				"panel_next"		"#Action_panel_next"
+				"power_up"		"#Action_power_up"
+				"power_down"		"#Action_power_down"
+				"pause"		"#Action_pause"
+				"game_menu"		"#Action_game_menu"
+				"jump"		"#Action_jump"
+				"crew_all"		"#Action_crew_all"
+				"doors_open"		"#Action_doors_open"
+				"doors_close"		"#Action_doors_close"
+				"autofire"		"#Action_autofire"
+				"focus_toggle"		"#Action_focus_toggle"
+				"cursor_click"		"#Action_cursor_click"
+				"cursor_rclick"		"#Action_cursor_rclick"
+				"saved_positions"		"#Action_saved_positions"
+				"return_positions"		"#Action_return_positions"
+			}
+		}
+		"Menus"
+		{
+			"title"		"#Set_Menus"
+			"legacy_set"		"0"
+			"StickPadGyro"
+			{
+				"menu_nav"
+				{
+					"title"		"#Action_menu_nav"
+					"input_mode"		"joystick_move"
+				}
+				"menu_cursor"
+				{
+					"title"		"#Action_menu_cursor"
+					"input_mode"		"absolute_mouse"
+				}
+			}
+			"Button"
+			{
+				"menu_up"		"#Action_menu_up"
+				"menu_down"		"#Action_menu_down"
+				"menu_left"		"#Action_menu_left"
+				"menu_right"		"#Action_menu_right"
+				"menu_select"		"#Action_menu_select"
+				"menu_back"		"#Action_menu_back"
+				"menu_alt"		"#Action_menu_alt"
+				"menu_info"		"#Action_menu_info"
+				"menu_tab_prev"		"#Action_menu_tab_prev"
+				"menu_tab_next"		"#Action_menu_tab_next"
+				"menu_click"		"#Action_menu_click"
+				"menu_rclick"		"#Action_menu_rclick"
+				"menu_pause"		"#Action_menu_pause"
+				"menu_escape"		"#Action_menu_escape"
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"0"
+		"mode"		"four_buttons"
+		"inputs"
+		{
+			"button_A"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame select, Select / Confirm"
+						}
+					}
+				}
+			}
+			"button_B"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame back, Back / Cancel"
+						}
+					}
+				}
+			}
+			"button_X"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame alt, Secondary (depower / deselect)"
+						}
+					}
+				}
+			}
+			"button_Y"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame info, Info / Details"
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"1"
+		"mode"		"trigger"
+		"inputs"
+		{
+			"edge"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame power_down, Decrease power"
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"2"
+		"mode"		"trigger"
+		"inputs"
+		{
+			"edge"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame power_up, Increase power"
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"3"
+		"mode"		"switches"
+		"inputs"
+		{
+			"left_bumper"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame panel_prev, Previous panel"
+						}
+					}
+				}
+			}
+			"right_bumper"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame panel_next, Next panel"
+						}
+					}
+				}
+			}
+			"button_escape"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame pause, Pause"
+						}
+					}
+				}
+			}
+			"button_menu"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame game_menu, Game menu"
+						}
+					}
+				}
+			}
+			"button_back_left_upper"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame doors_open, Open all doors"
+						}
+					}
+				}
+			}
+			"button_back_right_upper"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame doors_close, Close all doors"
+						}
+					}
+				}
+			}
+			"button_back_left"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame autofire, Toggle autofire"
+						}
+					}
+				}
+			}
+			"button_back_right"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame focus_toggle, Switch ship focus"
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"4"
+		"mode"		"joystick_move"
+		"inputs"
+		{
+			"click"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame crew_all, Select all crew"
+						}
+					}
+				}
+			}
+		}
+		"gameactions"
+		{
+			"InGame"		"nav_move"
+		}
+	}
+	"group"
+	{
+		"id"		"5"
+		"mode"		"dpad"
+		"inputs"
+		{
+			"dpad_north"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame nav_up, Navigate up"
+						}
+					}
+				}
+			}
+			"dpad_south"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame nav_down, Navigate down"
+						}
+					}
+				}
+			}
+			"dpad_west"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame nav_left, Navigate left"
+						}
+					}
+				}
+			}
+			"dpad_east"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame nav_right, Navigate right"
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"6"
+		"mode"		"absolute_mouse"
+		"inputs"
+		{
+			"click"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame jump, Jump (FTL jump)"
+						}
+					}
+				}
+			}
+		}
+		"gameactions"
+		{
+			"InGame"		"cursor_move"
+		}
+	}
+	"group"
+	{
+		"id"		"7"
+		"mode"		"joystick_move"
+		"inputs"
+		{
+		}
+		"gameactions"
+		{
+			"InGame"		"nav_move"
+		}
+	}
+	"group"
+	{
+		"id"		"8"
+		"mode"		"absolute_mouse"
+		"inputs"
+		{
+			"click"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame cursor_click, Cursor click"
+						}
+					}
+				}
+			}
+		}
+		"gameactions"
+		{
+			"InGame"		"cursor_move"
+		}
+	}
+	"group"
+	{
+		"id"		"9"
+		"mode"		"four_buttons"
+		"inputs"
+		{
+			"button_A"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_select, Menu select"
+						}
+					}
+				}
+			}
+			"button_B"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_back, Menu back"
+						}
+					}
+				}
+			}
+			"button_X"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_alt, Menu secondary"
+						}
+					}
+				}
+			}
+			"button_Y"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_info, Menu info"
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"10"
+		"mode"		"switches"
+		"inputs"
+		{
+			"left_bumper"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_tab_prev, Previous tab"
+						}
+					}
+				}
+			}
+			"right_bumper"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_tab_next, Next tab"
+						}
+					}
+				}
+			}
+			"button_escape"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_pause, Menu pause"
+						}
+					}
+				}
+			}
+			"button_menu"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_escape, Menu escape"
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"11"
+		"mode"		"joystick_move"
+		"inputs"
+		{
+		}
+		"gameactions"
+		{
+			"Menus"		"menu_nav"
+		}
+	}
+	"group"
+	{
+		"id"		"12"
+		"mode"		"dpad"
+		"inputs"
+		{
+			"dpad_north"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_up, Menu up"
+						}
+					}
+				}
+			}
+			"dpad_south"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_down, Menu down"
+						}
+					}
+				}
+			}
+			"dpad_west"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_left, Menu left"
+						}
+					}
+				}
+			}
+			"dpad_east"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_right, Menu right"
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"13"
+		"mode"		"absolute_mouse"
+		"inputs"
+		{
+			"click"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_click, Menu click"
+						}
+					}
+				}
+			}
+		}
+		"gameactions"
+		{
+			"Menus"		"menu_cursor"
+		}
+	}
+	"group"
+	{
+		"id"		"14"
+		"mode"		"joystick_move"
+		"inputs"
+		{
+		}
+		"gameactions"
+		{
+			"Menus"		"menu_nav"
+		}
+	}
+	"group"
+	{
+		"id"		"15"
+		"mode"		"absolute_mouse"
+		"inputs"
+		{
+			"click"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_click, Menu click"
+						}
+					}
+				}
+			}
+		}
+		"gameactions"
+		{
+			"Menus"		"menu_cursor"
+		}
+	}
+	"preset"
+	{
+		"id"		"0"
+		"name"		"InGame"
+		"group_source_bindings"
+		{
+			"0"		"button_diamond active"
+			"1"		"left_trigger active"
+			"2"		"right_trigger active"
+			"3"		"switch active"
+			"4"		"joystick active"
+			"5"		"dpad active"
+			"6"		"right_joystick active"
+			"7"		"left_trackpad active"
+			"8"		"right_trackpad active"
+		}
+	}
+	"preset"
+	{
+		"id"		"1"
+		"name"		"Menus"
+		"group_source_bindings"
+		{
+			"9"		"button_diamond active"
+			"10"		"switch active"
+			"11"		"joystick active"
+			"12"		"dpad active"
+			"13"		"right_joystick active"
+			"14"		"left_trackpad active"
+			"15"		"right_trackpad active"
+		}
+	}
+	"settings"
+	{
+	}
+}

@@ -1,0 +1,61 @@
+wait 6
+focus button 0
+press select
+wait_screen shipbuilder 10
+focus button 1
+press select
+wait 3
+focus choice 0
+press select
+wait 1
+focus choice 0
+press select
+wait_screen game 6
+press pause
+wait 0.5
+log --- crew panel: select first crew
+press panel_next
+wait 0.3
+press panel_next
+wait 0.3
+press panel_next
+wait 0.3
+press panel_next
+wait 0.3
+nav up
+wait 0.3
+nav up
+wait 0.3
+press select
+wait 0.5
+dump
+log --- back keeps selection and returns to ship
+press back
+wait 0.5
+dump
+nav up
+wait 0.4
+nav up
+wait 0.4
+press select
+wait 0.5
+dump
+press pause
+wait 4
+dump
+log --- weapons: arm first weapon
+press pause
+wait 0.3
+press panel_next
+wait 0.3
+press panel_next
+wait 0.3
+dump
+press select
+wait 0.8
+dump
+press back
+wait 0.5
+dump
+log --- enemy ship? none. jump test: press jump (FTL not ready yet)
+end

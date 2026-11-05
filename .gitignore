@@ -1,0 +1,7 @@
+build/
+dist/
+result
+result-*
+.direnv/
+*.o
+__pycache__/

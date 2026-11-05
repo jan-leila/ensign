@@ -1,0 +1,53 @@
+// Lua 5.3 C API resolved at runtime from the host process (Hyperspace statically
+// links Lua and exports the API with default visibility). We never link liblua.
+// Include this in code that CALLS Lua; lua_shim.cpp uses lua_shim_defs.h only.
+#pragma once
+#include "lua_shim_defs.h"
+
+
+// Route the API names through the resolved pointers. lua.h's own macros
+// (lua_pop, lua_tostring, lua_pcall, ...) expand to these names and get rerouted too.
+#define lua_gettop         (*luashim::p_lua_gettop)
+#define lua_settop         (*luashim::p_lua_settop)
+#define lua_pushvalue      (*luashim::p_lua_pushvalue)
+#define lua_type           (*luashim::p_lua_type)
+#define lua_typename       (*luashim::p_lua_typename)
+#define lua_tonumberx      (*luashim::p_lua_tonumberx)
+#define lua_tointegerx     (*luashim::p_lua_tointegerx)
+#define lua_toboolean      (*luashim::p_lua_toboolean)
+#define lua_tolstring      (*luashim::p_lua_tolstring)
+#define lua_rawlen         (*luashim::p_lua_rawlen)
+#define lua_isinteger      (*luashim::p_lua_isinteger)
+#define lua_isnumber       (*luashim::p_lua_isnumber)
+#define lua_isstring       (*luashim::p_lua_isstring)
+#define lua_pushnil        (*luashim::p_lua_pushnil)
+#define lua_pushnumber     (*luashim::p_lua_pushnumber)
+#define lua_pushinteger    (*luashim::p_lua_pushinteger)
+#define lua_pushlstring    (*luashim::p_lua_pushlstring)
+#define lua_pushstring     (*luashim::p_lua_pushstring)
+#define lua_pushcclosure   (*luashim::p_lua_pushcclosure)
+#define lua_pushboolean    (*luashim::p_lua_pushboolean)
+#define lua_createtable    (*luashim::p_lua_createtable)
+#define lua_setfield       (*luashim::p_lua_setfield)
+#define lua_getfield       (*luashim::p_lua_getfield)
+#define lua_setglobal      (*luashim::p_lua_setglobal)
+#define lua_getglobal      (*luashim::p_lua_getglobal)
+#define lua_rawseti        (*luashim::p_lua_rawseti)
+#define lua_rawgeti        (*luashim::p_lua_rawgeti)
+#define lua_next           (*luashim::p_lua_next)
+#define lua_pcallk         (*luashim::p_lua_pcallk)
+#define lua_error          (*luashim::p_lua_error)
+#define lua_settable       (*luashim::p_lua_settable)
+#define lua_gettable       (*luashim::p_lua_gettable)
+#define luaL_checklstring  (*luashim::p_luaL_checklstring)
+#define luaL_checknumber   (*luashim::p_luaL_checknumber)
+#define luaL_checkinteger  (*luashim::p_luaL_checkinteger)
+#define luaL_optinteger    (*luashim::p_luaL_optinteger)
+#define luaL_optnumber     (*luashim::p_luaL_optnumber)
+#define luaL_optlstring    (*luashim::p_luaL_optlstring)
+#define luaL_error         (*luashim::p_luaL_error)
+#define luaL_setfuncs      (*luashim::p_luaL_setfuncs)
+#define luaL_checktype     (*luashim::p_luaL_checktype)
+#define luaL_checkversion_ (*luashim::p_luaL_checkversion_)
+#define luaL_loadstring    (*luashim::p_luaL_loadstring)
+#define luaL_traceback     (*luashim::p_luaL_traceback)

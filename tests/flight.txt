@@ -1,0 +1,62 @@
+wait 6
+focus button 0
+press select
+wait_screen shipbuilder 10
+focus button 1
+press select
+wait 3
+focus choice 0
+press select
+wait 1
+focus choice 0
+press select
+wait_screen game 6
+press pause
+wait 0.5
+dump
+log --- crew: enter room with crew (room 4 has the pilot? try crewbox panel instead)
+press panel_next
+wait 0.3
+press panel_next
+wait 0.3
+press panel_next
+wait 0.3
+press panel_next
+wait 0.3
+dump
+press select
+wait 0.5
+dump
+log --- back to ship, pick a room, send crew
+press back
+wait 0.3
+dump
+nav left
+wait 0.4
+press select
+wait 1
+dump
+press back
+wait 0.4
+dump
+log --- power: shields +1 then -1
+press panel_next
+wait 0.4
+dump
+press power_up
+wait 0.6
+dump
+press power_down
+wait 0.6
+dump
+log --- weapons: arm, dump, cancel
+press panel_next
+wait 0.4
+press select
+wait 0.6
+dump
+press back
+wait 0.6
+dump
+probe
+end

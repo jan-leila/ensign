@@ -1,0 +1,200 @@
+"Action Manifest"
+{
+	"configurations"
+	{
+		"controller_neptune"
+		{
+			"0"
+			{
+				"path"		"configs/controller_neptune.vdf"
+			}
+		}
+		"controller_steamcontroller_gordon"
+		{
+			"0"
+			{
+				"path"		"configs/controller_steamcontroller_gordon.vdf"
+			}
+		}
+		"controller_xbox360"
+		{
+			"0"
+			{
+				"path"		"configs/controller_xbox360.vdf"
+			}
+		}
+		"controller_xboxone"
+		{
+			"0"
+			{
+				"path"		"configs/controller_xboxone.vdf"
+			}
+		}
+		"controller_xboxelite"
+		{
+			"0"
+			{
+				"path"		"configs/controller_xboxelite.vdf"
+			}
+		}
+		"controller_ps4"
+		{
+			"0"
+			{
+				"path"		"configs/controller_ps4.vdf"
+			}
+		}
+		"controller_ps5"
+		{
+			"0"
+			{
+				"path"		"configs/controller_ps5.vdf"
+			}
+		}
+		"controller_switch_pro"
+		{
+			"0"
+			{
+				"path"		"configs/controller_switch_pro.vdf"
+			}
+		}
+		"controller_generic"
+		{
+			"0"
+			{
+				"path"		"configs/controller_generic.vdf"
+			}
+		}
+	}
+	"actions"
+	{
+		"InGame"
+		{
+			"title"		"#Set_InGame"
+			"StickPadGyro"
+			{
+				"nav_move"
+				{
+					"title"		"#Action_nav_move"
+					"input_mode"		"joystick_move"
+				}
+				"cursor_move"
+				{
+					"title"		"#Action_cursor_move"
+					"input_mode"		"absolute_mouse"
+				}
+			}
+			"Button"
+			{
+				"nav_up"		"#Action_nav_up"
+				"nav_down"		"#Action_nav_down"
+				"nav_left"		"#Action_nav_left"
+				"nav_right"		"#Action_nav_right"
+				"select"		"#Action_select"
+				"back"		"#Action_back"
+				"alt"		"#Action_alt"
+				"info"		"#Action_info"
+				"panel_prev"		"#Action_panel_prev"
+				"panel_next"		"#Action_panel_next"
+				"power_up"		"#Action_power_up"
+				"power_down"		"#Action_power_down"
+				"pause"		"#Action_pause"
+				"game_menu"		"#Action_game_menu"
+				"jump"		"#Action_jump"
+				"crew_all"		"#Action_crew_all"
+				"doors_open"		"#Action_doors_open"
+				"doors_close"		"#Action_doors_close"
+				"autofire"		"#Action_autofire"
+				"focus_toggle"		"#Action_focus_toggle"
+				"cursor_click"		"#Action_cursor_click"
+				"cursor_rclick"		"#Action_cursor_rclick"
+				"saved_positions"		"#Action_saved_positions"
+				"return_positions"		"#Action_return_positions"
+			}
+		}
+		"Menus"
+		{
+			"title"		"#Set_Menus"
+			"StickPadGyro"
+			{
+				"menu_nav"
+				{
+					"title"		"#Action_menu_nav"
+					"input_mode"		"joystick_move"
+				}
+				"menu_cursor"
+				{
+					"title"		"#Action_menu_cursor"
+					"input_mode"		"absolute_mouse"
+				}
+			}
+			"Button"
+			{
+				"menu_up"		"#Action_menu_up"
+				"menu_down"		"#Action_menu_down"
+				"menu_left"		"#Action_menu_left"
+				"menu_right"		"#Action_menu_right"
+				"menu_select"		"#Action_menu_select"
+				"menu_back"		"#Action_menu_back"
+				"menu_alt"		"#Action_menu_alt"
+				"menu_info"		"#Action_menu_info"
+				"menu_tab_prev"		"#Action_menu_tab_prev"
+				"menu_tab_next"		"#Action_menu_tab_next"
+				"menu_click"		"#Action_menu_click"
+				"menu_rclick"		"#Action_menu_rclick"
+				"menu_pause"		"#Action_menu_pause"
+				"menu_escape"		"#Action_menu_escape"
+			}
+		}
+	}
+	"localization"
+	{
+		"english"
+		{
+			"Set_InGame"		"In Game"
+			"Set_Menus"		"Menus"
+			"Action_nav_move"		"Navigate (stick / pad)"
+			"Action_cursor_move"		"Free cursor"
+			"Action_nav_up"		"Navigate up"
+			"Action_nav_down"		"Navigate down"
+			"Action_nav_left"		"Navigate left"
+			"Action_nav_right"		"Navigate right"
+			"Action_select"		"Select / Confirm"
+			"Action_back"		"Back / Cancel"
+			"Action_alt"		"Secondary (depower / deselect)"
+			"Action_info"		"Info / Details"
+			"Action_panel_prev"		"Previous panel"
+			"Action_panel_next"		"Next panel"
+			"Action_power_up"		"Increase power"
+			"Action_power_down"		"Decrease power"
+			"Action_pause"		"Pause"
+			"Action_game_menu"		"Game menu"
+			"Action_jump"		"Jump (FTL jump)"
+			"Action_crew_all"		"Select all crew"
+			"Action_doors_open"		"Open all doors"
+			"Action_doors_close"		"Close all doors"
+			"Action_autofire"		"Toggle autofire"
+			"Action_focus_toggle"		"Switch ship focus"
+			"Action_cursor_click"		"Cursor click"
+			"Action_cursor_rclick"		"Cursor right click"
+			"Action_saved_positions"		"Save crew positions"
+			"Action_return_positions"		"Return crew to saved positions"
+			"Action_menu_nav"		"Menu navigation"
+			"Action_menu_cursor"		"Menu cursor"
+			"Action_menu_up"		"Menu up"
+			"Action_menu_down"		"Menu down"
+			"Action_menu_left"		"Menu left"
+			"Action_menu_right"		"Menu right"
+			"Action_menu_select"		"Menu select"
+			"Action_menu_back"		"Menu back"
+			"Action_menu_alt"		"Menu secondary"
+			"Action_menu_info"		"Menu info"
+			"Action_menu_tab_prev"		"Previous tab"
+			"Action_menu_tab_next"		"Next tab"
+			"Action_menu_click"		"Menu click"
+			"Action_menu_rclick"		"Menu right click"
+			"Action_menu_pause"		"Menu pause"
+			"Action_menu_escape"		"Menu escape"
+		}
+	}
+}

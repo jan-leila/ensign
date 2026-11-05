@@ -1,0 +1,364 @@
+-- 50_game.lua: in-flight controls. The screen is split into panels; the bumpers
+-- cycle them and the d-pad / stick moves a selection inside the active panel:
+--   ship     your rooms (and crew inside a room), doors
+--   enemy    the enemy's rooms (forced while a weapon / power is aimed)
+--   power    the reactor's system boxes
+--   weapons  weapon slots + autofire
+--   drones   drone slots
+--   crew     the crew portraits on the left
+--   top      FTL button, ship / store / options buttons
+local E = ENSIGN
+local G = {}
+E.game = G
+local I, C, N
+
+G.panel = "ship"
+G.hits = {}
+G.panelHits = {}
+G.roomCrewMode = false     -- selecting individual crew inside a room
+G.roomCrew = {}            -- crew hits for the room being inspected
+G.crewIndex = 1
+G.targeting = nil          -- "weapon" | "beam" | "teleport" | "hack" | "mind" | nil
+G.beamStage = 0
+G.hint = {}
+G.lastPanel = nil
+
+local PANEL_ORDER = { "ship", "enemy", "power", "weapons", "drones", "crew", "top" }
+local PANEL_LABEL = { ship = "YOUR SHIP", enemy = "ENEMY SHIP", power = "POWER", weapons = "WEAPONS",
+                      drones = "DRONES", crew = "CREW", top = "CONTROLS" }
+local SYS = { shields = 0, engines = 1, oxygen = 2, weapons = 3, drones = 4, medbay = 5, pilot = 6,
+              sensors = 7, doors = 8, teleporter = 9, cloaking = 10, artillery = 11, battery = 12,
+              clonebay = 13, mind = 14, hacking = 15 }
+
+local function kindFilter(panel)
+    if panel == "ship" then return function(h) return (h.kind == "room" or h.kind == "door") and h.extra == 0 end
+    elseif panel == "enemy" then return function(h) return h.kind == "room" and h.extra == 1 end
+    elseif panel == "power" then return function(h) return h.kind == "sysbox" end
+    elseif panel == "weapons" then return function(h) return (h.kind == "armament" and h.extra == 3) or h.kind == "autofire" end
+    elseif panel == "drones" then return function(h) return h.kind == "armament" and h.extra == 4 end
+    elseif panel == "crew" then return function(h) return h.kind == "crewbox" or (h.kind == "button" and (h.id == 600 or h.id == 601)) end
+    elseif panel == "top" then return function(h) return h.kind == "ftl" or h.kind == "topbar" end end
+    return function() return false end
+end
+
+local function panelAvailable(panel)
+    local f = kindFilter(panel)
+    for _, h in ipairs(G.hits) do if f(h) then return true end end
+    return false
+end
+
+local function collect(panel)
+    local f = kindFilter(panel)
+    local out = {}
+    for _, h in ipairs(G.hits) do if f(h) then out[#out + 1] = h end end
+    return out
+end
+
+-- Rooms only (no doors) for navigation unless the player asks for doors
+local function roomsOnly(h) return h.kind == "room" end
+
+local function selectedCrewCount()
+    local ok, n = pcall(function() return E.gui().crewControl.selectedCrew:size() end)
+    return ok and n or 0
+end
+
+local function armedWeapon()
+    local ok, w = pcall(function() return E.gui().combatControl.weapControl.armedWeapon end)
+    if ok and w then return w end
+    return nil
+end
+
+local function detectTargeting()
+    local gui = E.gui()
+    if not gui then return nil end
+    local w = armedWeapon()
+    if w then
+        local ok, n = pcall(function() return w:NumTargetsRequired() end)
+        if ok and n == 2 then return "beam" end
+        local ok2, tn = pcall(function() return w.blueprint.typeName end)
+        if ok2 and tn == "BOMB" then return "bomb" end
+        return "weapon"
+    end
+    -- system powers that need a target expose their state on the mouse controller
+    local okm, m = pcall(function() return Hyperspace.Mouse end)
+    if okm and m then
+        if m.iTeleporting and m.iTeleporting ~= 0 then return "teleport" end
+        if m.iHacking and m.iHacking ~= 0 then return "hack" end
+        if m.iMindControlling and m.iMindControlling ~= 0 then return "mind" end
+    end
+    return nil
+end
+
+local PREFERRED = { ship = "room", enemy = "room", power = "sysbox", weapons = "armament", drones = "armament", crew = "crewbox", top = "ftl" }
+local function setPanel(panel, keepCursor)
+    if G.panel ~= panel then
+        G.panel = panel
+        G.roomCrewMode = false
+    end
+    G.panelHits = collect(panel)
+    if not keepCursor or not C.focus or not N.refresh(C.focus, G.panelHits) then
+        local pref = PREFERRED[panel]
+        local f = pref and function(h) return h.kind == pref end or nil
+        local h = N.nearest(C.x, C.y, G.panelHits, f)
+        C.mode = "snap"
+        C.snapTo(h)
+    end
+end
+
+local function cyclePanel(dir)
+    local idx = 1
+    for i, p in ipairs(PANEL_ORDER) do if p == G.panel then idx = i end end
+    for _ = 1, #PANEL_ORDER do
+        idx = idx + dir
+        if idx < 1 then idx = #PANEL_ORDER elseif idx > #PANEL_ORDER then idx = 1 end
+        if panelAvailable(PANEL_ORDER[idx]) then
+            setPanel(PANEL_ORDER[idx])
+            E.feedback.tick()
+            return
+        end
+    end
+end
+
+-- crew inside the focused room (player ship)
+local function crewInRoom(roomId)
+    local out = {}
+    local ship = E.playerShip()
+    if not ship then return out end
+    local ox, oy = Ensign.shipOrigins()
+    pcall(function()
+        local list = ship.vCrewList
+        for i = 0, list:size() - 1 do
+            local c = list[i]
+            if c and c.currentShipId == 0 and c.iRoomId == roomId and not c.bDead and c:GetControllable() then
+                out[#out + 1] = { kind = "crew", id = i, x = ox + c.x - 12, y = oy + c.y - 14, w = 24, h = 28,
+                                  label = c:GetName(), extra = 0, crew = c }
+            end
+        end
+    end)
+    table.sort(out, function(a, b) if a.x == b.x then return a.y < b.y end return a.x < b.x end)
+    return out
+end
+
+local function hotkey(name, fallback) C.key(E.hotkey(name, fallback)) end
+
+local function systemHotkeys(sysId)
+    -- primary / secondary activation hotkeys for systems with buttons
+    if sysId == SYS.cloaking then return "activate_cloak", nil
+    elseif sysId == SYS.teleporter then return "send_tele", "ret_tele"
+    elseif sysId == SYS.hacking then return "start_hacking", nil
+    elseif sysId == SYS.mind then return "mindControl", nil
+    elseif sysId == SYS.battery then return "activate_battery", nil
+    elseif sysId == SYS.doors then return "open", "close" end
+    return nil, nil
+end
+
+function G.update()
+    I, C, N = E.input, E.cursor, E.nav
+    G.hits = Ensign.hitboxes()
+    local targeting = detectTargeting()
+    local targetingChanged = targeting ~= G.targeting
+    G.targeting = targeting
+    if targetingChanged then G.beamStage = 0 end
+
+    -- forced panels while aiming
+    if targeting == "weapon" or targeting == "beam" or targeting == "hack" or targeting == "mind" or targeting == "teleport" then
+        if panelAvailable("enemy") and (G.panel ~= "enemy" and G.panel ~= "ship") then setPanel("enemy") end
+        if targetingChanged and panelAvailable("enemy") then setPanel("enemy") end
+        if targeting ~= "teleport" and targeting ~= "bomb" and G.panel == "ship" and panelAvailable("enemy") then setPanel("enemy") end
+    elseif targeting == "bomb" then
+        if targetingChanged then setPanel(panelAvailable("enemy") and "enemy" or "ship") end
+    elseif targetingChanged and G.lastPanel then
+        setPanel(G.lastPanel)
+    end
+    if not targeting then G.lastPanel = G.panel end
+
+    if not panelAvailable(G.panel) then
+        if panelAvailable("ship") then setPanel("ship") end
+    end
+    G.panelHits = collect(G.panel)
+    C.focus = N.refresh(C.focus, G.panelHits) or (C.mode == "snap" and N.nearest(C.x, C.y, G.panelHits, G.panel == "ship" and roomsOnly or nil) or nil)
+    if C.mode == "snap" and C.focus and not E.sameHit(C.focus, G.prevFocus) then C.snapTo(C.focus) end
+    G.prevFocus = C.focus
+
+    -- panels
+    if I.pressed("panel_prev") then cyclePanel(-1) end
+    if I.pressed("panel_next") then cyclePanel(1) end
+    if I.pressed("focus_toggle") then
+        if G.panel == "enemy" then setPanel("ship") elseif panelAvailable("enemy") then setPanel("enemy") end
+    end
+
+    -- free cursor
+    if C.updateFree() then G.roomCrewMode = false end
+
+    -- directional navigation
+    local dir = I.navDirection()
+    if dir then
+        if G.roomCrewMode and #G.roomCrew > 0 then
+            local from = G.roomCrew[G.crewIndex]
+            local nxt = N.pick(from, G.roomCrew, dir)
+            if nxt then
+                for i, h in ipairs(G.roomCrew) do if h == nxt then G.crewIndex = i end end
+                C.moveTo(E.center(nxt))
+                E.feedback.tick()
+            end
+        elseif G.targeting == "beam" and G.beamStage == 1 then
+            -- beam second point: step the cursor by half a tile
+            local step = 17
+            local dx = (dir == "left" and -step) or (dir == "right" and step) or 0
+            local dy = (dir == "up" and -step) or (dir == "down" and step) or 0
+            C.mode = "free"
+            C.moveTo(C.x + dx, C.y + dy)
+        else
+            local filter = (G.panel == "ship" and not I.down("info")) and roomsOnly or nil
+            local from = C.focus or { x = C.x - 1, y = C.y - 1, w = 2, h = 2, kind = "_cursor", id = -1 }
+            local nxt = N.pick(from, G.panelHits, dir, filter)
+            if nxt then
+                C.mode = "snap"
+                C.snapTo(nxt)
+                E.feedback.tick()
+            end
+        end
+    end
+
+    local focus = C.focus
+    -- select
+    if I.pressed("select") or I.pressed("cursor_click") then
+        if G.roomCrewMode and #G.roomCrew > 0 then
+            local crew = G.roomCrew[G.crewIndex]
+            if crew then
+                C.moveTo(E.center(crew))
+                C.click(1, { shift = selectedCrewCount() > 0 })
+                E.feedback.pulse("select")
+            end
+        elseif G.targeting == "beam" then
+            C.click(1)
+            G.beamStage = G.beamStage == 0 and 1 or 0
+            if G.beamStage == 1 then C.mode = "free" end
+        elseif focus and focus.kind == "room" and selectedCrewCount() > 0 and not G.targeting then
+            -- FTL issues move orders with the RIGHT button (left click on a room deselects)
+            C.click(3)
+            E.feedback.pulse("select")
+        elseif focus and focus.kind == "room" and focus.extra == 0 and G.panel == "ship"
+               and selectedCrewCount() == 0 and not G.targeting then
+            -- enter the room: pick individual crew
+            G.roomCrew = crewInRoom(focus.id)
+            if #G.roomCrew > 0 then
+                G.roomCrewMode = true
+                G.crewIndex = 1
+                C.moveTo(E.center(G.roomCrew[1]))
+                E.feedback.tick()
+            else
+                C.click(1)
+            end
+        elseif focus and focus.kind == "sysbox" and C.mode == "snap" then
+            C.click(1)                  -- add power / toggle
+        else
+            C.click(1)
+        end
+    end
+    -- alt / right click (crew panel: shift-click adds to the selection)
+    if I.pressed("alt") or I.pressed("cursor_rclick") then
+        if G.panel == "crew" and focus and focus.kind == "crewbox" then
+            C.click(1, { shift = true })
+        elseif focus and focus.kind == "sysbox" and focus.id == SYS.teleporter then
+            hotkey("ret_tele", nil)
+        elseif focus and focus.kind == "sysbox" and focus.id == SYS.doors then
+            hotkey("close", 120)
+        else
+            C.click(3)
+        end
+    end
+    -- back: leave the current sub-mode, keeping any crew selection so a destination can be picked
+    if I.pressed("back") then
+        if G.roomCrewMode then
+            G.roomCrewMode = false
+            if focus then C.snapTo(focus) end
+        elseif G.targeting then
+            C.click(3)                  -- right click cancels aiming / disarms
+        elseif G.panel ~= "ship" then
+            setPanel("ship")
+        elseif selectedCrewCount() > 0 then
+            -- deselect: a left click on a room with crew selected clears the selection
+            if focus and focus.kind == "room" then C.snapTo(focus) end
+            C.click(1)
+        end
+    end
+    -- info / Y: activate special systems, open doors from the doors box, else ship screen
+    if I.pressed("info") then
+        if focus and focus.kind == "sysbox" then
+            local primary = systemHotkeys(focus.id)
+            if primary then hotkey(primary, nil) end
+        elseif G.panel == "weapons" then
+            hotkey("autofire", 118)
+        end
+    end
+    -- power triggers
+    if I.pressed("power_up") then
+        if G.panel == "power" or G.panel == "weapons" or G.panel == "drones" then
+            if focus then C.snapTo(focus) end
+            C.click(1)
+        end
+    end
+    if I.pressed("power_down") then
+        if G.panel == "power" or G.panel == "weapons" or G.panel == "drones" then
+            if focus then C.snapTo(focus) end
+            C.click(3)
+        end
+    end
+    -- global hotkeys
+    if I.pressed("pause") then hotkey("pause", E.KEY.SPACE) end
+    if I.pressed("game_menu") then C.key(E.KEY.ESC) end
+    if I.pressed("jump") then hotkey("jump", 106) end
+    if I.pressed("autofire") then hotkey("autofire", 118) end
+    if I.pressed("crew_all") then hotkey("crew_all", 113) end
+    if I.pressed("doors_open") then hotkey("open", 122) end
+    if I.pressed("doors_close") then hotkey("close", 120) end
+    if I.pressed("saved_positions") then hotkey("loadPositions", nil) end
+    if I.pressed("return_positions") then hotkey("savePositions", nil) end
+
+    -- hints
+    local hint = { { "nav_up", "Move" } }
+    if G.roomCrewMode then
+        hint[#hint + 1] = { "select", selectedCrewCount() > 0 and "Add crew" or "Select crew" }
+        hint[#hint + 1] = { "back", "Rooms" }
+    elseif G.targeting == "beam" then
+        hint[#hint + 1] = { "select", G.beamStage == 0 and "Beam start" or "Beam end" }
+        hint[#hint + 1] = { "back", "Cancel" }
+    elseif G.targeting then
+        hint[#hint + 1] = { "select", "Target" }
+        hint[#hint + 1] = { "back", "Cancel" }
+        if G.targeting == "bomb" or G.targeting == "teleport" then hint[#hint + 1] = { "focus_toggle", "Other ship" } end
+    elseif G.panel == "ship" then
+        hint[#hint + 1] = { "select", selectedCrewCount() > 0 and "Send crew" or "Crew in room" }
+        if selectedCrewCount() > 0 then hint[#hint + 1] = { "back", "Deselect" } end
+        hint[#hint + 1] = { "panel_next", "Panel" }
+    elseif G.panel == "power" then
+        hint[#hint + 1] = { "power_up", "Power +" }; hint[#hint + 1] = { "power_down", "Power -" }
+        if focus and systemHotkeys(focus.id) then hint[#hint + 1] = { "info", "Activate" } end
+        hint[#hint + 1] = { "panel_next", "Panel" }
+    elseif G.panel == "weapons" or G.panel == "drones" then
+        hint[#hint + 1] = { "select", G.panel == "weapons" and "Arm / aim" or "Deploy" }
+        hint[#hint + 1] = { "alt", "Depower" }
+        if G.panel == "weapons" then hint[#hint + 1] = { "info", "Autofire" } end
+        hint[#hint + 1] = { "panel_next", "Panel" }
+    elseif G.panel == "crew" then
+        hint[#hint + 1] = { "select", "Select" }; hint[#hint + 1] = { "crew_all", "All crew" }
+        hint[#hint + 1] = { "panel_next", "Panel" }
+    else
+        hint[#hint + 1] = { "select", "Select" }; hint[#hint + 1] = { "panel_next", "Panel" }
+    end
+    hint[#hint + 1] = { "pause", "Pause" }
+    G.hint = hint
+end
+
+function G.render()
+    if G.roomCrewMode and #G.roomCrew > 0 then
+        local crew = G.roomCrew[G.crewIndex]
+        if crew then C.drawFrame(crew, nil, 2) end
+        if C.focus then C.drawFrame(C.focus, Graphics.GL_Color(1, 1, 1, 0.35), 3) end
+    elseif C.mode == "snap" and C.focus then
+        C.drawFrame(C.focus)
+    end
+end
+
+function G.panelLabel() return PANEL_LABEL[G.panel] or "" end

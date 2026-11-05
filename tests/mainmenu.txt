@@ -1,0 +1,17 @@
+# Ensign headless smoke test: main menu navigation
+wait 6
+dump
+expect_screen mainmenu
+nav down
+wait 0.3
+nav down
+wait 0.3
+dump
+press select
+wait 2
+dump
+press back
+wait 2
+expect_screen mainmenu
+dump
+end

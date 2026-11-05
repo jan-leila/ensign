@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<metadata>
+	<title>Ensign - Controller Support</title>
+	<threadUrl>https://github.com/jan-leila/ensign</threadUrl>
+	<author>Leyla (jan-leila)</author>
+	<version>0.1.0</version>
+	<description>Full controller support for FTL through Steam Input: navigate your ship, the enemy ship, power, weapons, drones, crew and every menu with a gamepad or the Steam Deck. Requires Hyperspace and the Ensign native shim (ensign.amd64.so) preloaded before Hyperspace.</description>
+</metadata>

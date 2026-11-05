@@ -1,0 +1,13 @@
+<!-- Ensign: controller support. Hyperspace processes every <scripts> block, so a plain append is enough. -->
+<scripts>
+	<script>data/ensign/00_core.lua</script>
+	<script>data/ensign/10_input.lua</script>
+	<script>data/ensign/20_nav.lua</script>
+	<script>data/ensign/30_cursor.lua</script>
+	<script>data/ensign/40_menus.lua</script>
+	<script>data/ensign/50_game.lua</script>
+	<script>data/ensign/60_hud.lua</script>
+	<script>data/ensign/70_feedback.lua</script>
+	<script>data/ensign/80_dev.lua</script>
+	<script>data/ensign/99_main.lua</script>
+</scripts>

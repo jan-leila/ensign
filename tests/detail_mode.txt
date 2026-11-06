@@ -1,54 +1,54 @@
 wait 6
 focus button 0
-press select
+press a
 wait_screen shipbuilder 10
 focus button 1
-press select
+press a
 wait 3
 focus choice 0
-press select
+press a
 wait 1
-press_if event select
+press_if event a
 wait 1
-press_if event select
+press_if event a
 wait_screen game 6
 fakepad xbox
-press pause
+press view
 wait 0.4
 log --- detail mode: room 14 -> select unit -> right to door -> right into room 10 -> select unit
 panel ship
 wait 0.3
 focus room 14
 wait 0.3
-press select
+press a
 wait 0.4
 dump
-press select
-wait 0.4
-dump
-nav right
+press a
 wait 0.4
 dump
 nav right
 wait 0.4
 dump
-press select
+nav right
+wait 0.4
+dump
+press a
 wait 0.4
 dump
 shot detail_two_selected
 log --- back to rooms and send both to room 6
-press back
+press b
 wait 0.4
 dump
 focus room 6
 wait 0.3
-press select
+press a
 wait 0.4
-press pause
+press view
 wait 6
 dump
 log --- edge transitions: down past the ship -> weapons; up -> ship; left -> power; right -> weapons
-press pause
+press view
 wait 0.3
 panel ship
 wait 0.3
@@ -60,7 +60,7 @@ dump
 nav up
 wait 0.4
 dump
-panel weapons
+panel systems
 wait 0.3
 nav left
 wait 0.4
@@ -81,22 +81,22 @@ panel top
 wait 0.3
 focus topbar 0
 wait 0.3
-press select
+press a
 wait 1
-press panel_next
+press rb
 wait 0.6
-press panel_next
+press rb
 wait 0.6
 dump
-press select
+press a
 wait 0.4
 dump
 nav right
 wait 0.4
-press select
+press a
 wait 0.6
 dump
-press back
+press b
 wait 1
 dump
 end

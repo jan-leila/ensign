@@ -9,24 +9,33 @@ Switch Pro or generic pad. It is built on the
 ## What it does
 
 * **A selection frame instead of a mouse.** The d-pad or left stick moves a
-  frame between the things you can act on; the game's own pointer follows it,
-  so hover highlights, tooltips and aiming previews look exactly as with a mouse.
-* **Panels** (bumpers cycle them, `focus_toggle` jumps between the ships):
-  *your ship*, *enemy ship*, *power*, *weapons*, *drones*, *crew*, *controls*.
-* **Crew orders.** Select a room on your ship to look at the crew inside it,
-  pick one (or add several with the secondary button), go back to the room
-  view and choose a destination. The crew portraits on the left work too.
-* **Power.** On the power panel the triggers add and remove power from the
-  system under the frame; `info` activates systems with buttons (cloak,
-  hacking, mind control, teleporter, battery, doors).
-* **Weapons and drones.** Select powers or arms a slot, the secondary button
-  depowers it. While a weapon, hacking, mind control or the teleporter is
-  armed the frame is locked to valid targets; beams move the cursor freely
-  over the enemy ship and take two points; bombs and the teleporter can swap
-  ships with `focus_toggle`.
-* **Everything else**: pause, the FTL jump, the star map, event choices,
-  the store, upgrade/crew/cargo screens, options, the hangar and the main menu
-  are navigated with the same frame (`panel_prev/next` switch tabs).
+  frame between the things you can act on; the game's own pointer follows it
+  (and is hidden), so hover highlights, tooltips and aiming previews behave
+  exactly as with a mouse. Pushing past the edge of a group crosses into the
+  neighbouring one (ship ↔ systems below, crew list left, controls above, enemy
+  right), landing on the element in the direction of travel.
+* **Three groups, rotated with the bumpers** (or jumped to with their own
+  actions): *crew* (the portraits), *systems* (reactor boxes plus weapon and
+  drone slots, empty slots skipped) and *ship* (rooms; the enemy ship joins the
+  rotation when present and is forced while something is aimed).
+* **Ship.** A on a room opens *detail mode*, which walks the units and doors:
+  within a room between its units, out of a room through the door on that
+  wall first and then into the next room. A toggles a unit in a persistent
+  multi-selection or opens/closes a door; B returns to room mode. With units
+  selected, A on a room sends them, B deselects all, X reopens detail mode to
+  add more. Y is always the FTL jump.
+* **Systems.** On a reactor box A adds power, B removes it, X turns it off
+  (the triggers add/remove too). On a weapon or drone slot A toggles it (hold
+  A and move to re-order), B turns it off, X re-targets it; aiming then locks
+  the frame to valid targets, beams take two points, bombs and the teleporter
+  can swap ships.
+* **Every verb is its own Steam action** (`room_open`, `detail_toggle_door`,
+  `system_off`, `slot_retarget`, ...), all on the natural buttons by default,
+  so any single one can be rebound without moving the others.
+* **Screens**: Start opens the ship screens (systems / crew / inventory,
+  bumpers switch tabs); A picks an item up and A drops it, B puts it back.
+  Pause, the star map, event choices, the store, options, the hangar and the
+  main menu use the same frame.
 * **Feedback.** Rumble on hull hits, shield hits, weapon fire, jumps,
   boarders, crew deaths and low hull; trackpad haptic ticks on Deck / Steam
   Controller; glyph-based button hints in FTL's own style, drawn from the

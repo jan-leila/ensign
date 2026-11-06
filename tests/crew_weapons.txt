@@ -1,61 +1,61 @@
 wait 6
 focus button 0
-press select
+press a
 wait_screen shipbuilder 10
 focus button 1
-press select
+press a
 wait 3
 focus choice 0
-press select
+press a
 wait 1
-press_if event select
+press_if event a
 wait 1
-press_if event select
+press_if event a
 wait_screen game 6
-press pause
+press view
 wait 0.5
 log --- crew panel: select first crew
-press panel_next
+press rb
 wait 0.3
-press panel_next
+press rb
 wait 0.3
-press panel_next
+press rb
 wait 0.3
-press panel_next
-wait 0.3
-nav up
+press rb
 wait 0.3
 nav up
 wait 0.3
-press select
+nav up
+wait 0.3
+press a
 wait 0.5
 dump
 log --- back keeps selection and returns to ship
-press back
+press b
 wait 0.5
 dump
 nav up
 wait 0.4
 nav up
 wait 0.4
-press select
+press a
 wait 0.5
 dump
-press pause
+press view
 wait 4
 dump
 log --- weapons: arm first weapon
-press pause
+press view
 wait 0.3
-press panel_next
+press rb
 wait 0.3
-press panel_next
+press rb
 wait 0.3
 dump
-press select
+press a
 wait 0.8
 dump
-press back
+press b
 wait 0.5
 dump
 log --- enemy ship? none. jump test: press jump (FTL not ready yet)

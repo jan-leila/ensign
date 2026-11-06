@@ -1,54 +1,54 @@
 wait 6
 focus button 0
-press select
+press a
 wait_screen shipbuilder 10
 focus button 1
-press select
+press a
 wait 3
 focus choice 0
-press select
+press a
 wait 1
-press_if event select
+press_if event a
 wait 1
-press_if event select
+press_if event a
 wait_screen game 6
 fakepad xbox
-press pause
+press view
 wait 0.3
 log --- ship screens via the top bar
 panel top
 wait 0.3
 focus topbar 0
 wait 0.3
-press select
+press a
 wait 1
 probe
 dump
 shot upgrades
 nav down
 wait 0.4
-press select
+press a
 wait 0.5
 dump
-press panel_next
+press rb
 wait 0.6
 probe
 dump
 shot crew_manifest
-press panel_next
+press rb
 wait 0.6
 probe
 dump
 shot equipment
-press back
+press b
 wait 1
 dump
 log --- options via the pause menu
-press game_menu
+press start
 wait 1
 focus button 4
 wait 0.3
-press select
+press a
 wait 1
 dump
 shot options
@@ -57,10 +57,10 @@ wait 0.4
 nav down
 wait 0.4
 dump
-press back
+press b
 wait 1
 dump
-press back
+press b
 wait 1
 dump
 end

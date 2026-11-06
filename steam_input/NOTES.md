@@ -15,3 +15,14 @@
 - Trackpad as joystick_move for nav_move on Deck, and absolute_mouse on a right_joystick group, are not shown in a real game_action example.
 - No gyro groups, no Xbox Elite paddle bindings, no PS touchpad bindings.
 - Steam may ignore/repair configs if group sources are incomplete; tune in Steam's configurator.
+
+# Multi-binding and layout notes (action redesign)
+
+- Several `"binding"` entries under one activator's `"bindings"` block (same key repeated) is the real spelling: seen in Steam's own configs, e.g. `steamapps/common/Steam Controller Configs/111951489/config/250760/controller_xboxone.vdf` (two `"binding"` lines under one `"bindings"`). Not yet verified for `game_action` bindings specifically. The Python `vdf` module collapses duplicate keys, so validation uses the order-preserving parser in `tools/gen-steam-input.py`.
+- Rebinding one verb in Steam's configurator edits only its own `binding` line; the other verbs on that physical input stay.
+- Steam's normalised copy of a config appends ", , " to binding strings and adds creator/timestamp/localization fields; the repo files omit those (as the earlier accepted files did). The configs carry the `actions` block (with `legacy_set`) but no `localization` block; localization lives in the manifest only.
+- Trigger groups bind only the matching verb: LT group = `system_power_down`, RT group = `system_power_up` (Full_Press on `edge`); the same verbs are also bound on B / A.
+- `pause` = `button_escape` (View/Back), `ship_screens` = `button_menu` (Start/Menu): swapped relative to the first layout on purpose.
+- Right stick click is unbound on gamepads and the Deck (the groups keep an empty `inputs` block); `cursor_click` / `menu_click` use the right pad click on Deck and Steam Controller only.
+- Binding descriptions are the action titles; titles must not contain commas (the binding string is comma-delimited; the generator asserts this).
+- Files are generated: `python3 tools/gen-steam-input.py`. Group ids are assigned sequentially (InGame then Menus); presets reference them.

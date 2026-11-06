@@ -1,67 +1,67 @@
 wait 6
 focus button 0
-press select
+press a
 wait_screen shipbuilder 10
 focus button 1
-press select
+press a
 wait 3
 focus choice 0
-press select
+press a
 wait 1
-press_if event select
+press_if event a
 wait 1
-press_if event select
+press_if event a
 wait_screen game 6
 fakepad xbox
-press pause
+press view
 wait 0.4
-log --- power panel: shields +1 then -1 via triggers
-panel power
+log --- systems: B removes shield power, A adds it back, X turns engines off
+panel systems
+wait 0.3
+focus sysbox 0
 wait 0.3
 dump
-shot power_panel
-press power_up
+press b
 wait 0.6
 dump
-press power_down
+press a
 wait 0.6
 dump
-log --- doors: focus room 10, Y cycles doors, A toggles
-panel ship
+focus sysbox 1
 wait 0.3
-focus room 10
-wait 0.3
-press info
-wait 0.4
+press x
+wait 1.0
 dump
-shot door_mode
-press select
+log --- slot: A toggles power on, B turns it off, X re-targets (arms)
+focus armament 1
+wait 0.3
+press a
 wait 0.6
 dump
-press info
-wait 0.4
-press select
+press b
 wait 0.6
 dump
-press back
-wait 0.3
+press x
+wait 1.0
+dump
+press b
+wait 0.6
 log --- drag: move weapon slot 0 to slot 1 by holding A
-panel weapons
-wait 0.3
 focus armament 0
 wait 0.3
-dump
-press select 70
+press a 70
 wait 0.25
 nav right
-wait 0.3
-shot drag_mid
-wait 0.8
+wait 1.1
 dump
-log --- quick tap still arms
-focus armament 0
+log --- Y jumps once the drive is charged (engines back on first)
+focus sysbox 1
 wait 0.3
-press select
-wait 0.6
+press a
+wait 0.4
+press view
+wait 30
+press y
+wait_screen starmap 8
 dump
 end

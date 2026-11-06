@@ -1,44 +1,44 @@
 wait 6
 focus button 0
-press select
+press a
 wait_screen shipbuilder 10
 focus button 1
-press select
+press a
 wait 3
 focus choice 0
-press select
+press a
 wait 1
-press_if event select
+press_if event a
 wait 1
-press_if event select
+press_if event a
 wait_screen game 6
-press pause
+press view
 wait 0.5
-press panel_next
+press rb
 wait 0.3
-press panel_next
+press rb
 wait 0.3
-press panel_next
+press rb
 wait 0.3
-press panel_next
+press rb
 wait 0.3
 nav up
 wait 0.3
 nav up
 wait 0.3
-press select
+press a
 wait 0.5
-press back
+press b
 wait 0.5
 nav up
 wait 0.4
 nav up
 wait 0.4
 dump
-press select
+press a
 wait 0.3
 dump
-press pause
+press view
 wait 1
 dump
 wait 2
@@ -46,21 +46,21 @@ dump
 wait 3
 dump
 log --- now via room crew mode: enter room 14 (Xin Xin), pick, back, send to room 10
-press back
+press b
 wait 0.3
 focus room 14
 wait 0.3
-press select
+press a
 wait 0.5
 dump
-press select
+press a
 wait 0.5
 dump
-press back
+press b
 wait 0.3
 focus room 10
 wait 0.3
-press select
+press a
 wait 0.3
 dump
 wait 4

@@ -1,0 +1,38 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+press view
+wait 0.4
+panel ship
+wait 0.3
+log --- room 10: Y -> unit, right -> right-wall door 10, down -> door 11 on the same wall, down again
+focus room 10
+wait 0.3
+press y
+wait 0.4
+nav right
+wait 0.4
+dump
+nav down
+wait 0.4
+dump
+nav down
+wait 0.4
+dump
+shot detail_anchor
+nav left
+wait 0.4
+dump
+end

@@ -39,7 +39,8 @@ local function gameState()
         s = s .. " paused=" .. tostring(gui.bPaused) .. " selCrew=" .. tostring(gui.crewControl.selectedCrew:size())
         local w = gui.combatControl.weapControl.armedWeapon
         s = s .. " armed=" .. (w and w.blueprint.name or "nil")
-        if ship and ship.shieldSystem then s = s .. " shieldsPower=" .. tostring(ship.shieldSystem.powerState.first) end
+        pcall(function() s = s .. " shieldsPower=" .. tostring(ship.shieldSystem.powerState.first) end)
+        pcall(function() s = s .. " enginesPower=" .. tostring(ship:GetSystem(1).powerState.first) end)
         s = s .. " crewMode=" .. tostring(E.game.roomCrewMode) .. " targeting=" .. tostring(E.game.targeting)
         s = s .. " aimPts=" .. tostring(gui.combatControl.aimingPoints:size()) .. " movingBeam=" .. tostring(gui.combatControl.movingBeam)
         if w then s = s .. " wTargets=" .. tostring(w.targets:size()) end

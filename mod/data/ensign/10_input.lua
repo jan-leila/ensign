@@ -1,43 +1,68 @@
 -- 10_input.lua: Steam Input action layer with edge detection, auto-repeat and
--- analog-to-direction conversion. Semantic action names are shared between the
--- InGame and Menus action sets; the mapping below resolves them per set.
+-- analog-to-direction conversion.
+--
+-- Every state-specific verb is its own Steam action (room_open, detail_toggle_unit,
+-- system_power_up, ...). Several of them share a physical button by default; the
+-- modules only consult the verbs that apply to their current state, so each one
+-- stays independently rebindable in Steam's configurator.
 local E = ENSIGN
 local I = {}
 E.input = I
 
 I.sets = { "InGame", "Menus" }
 I.digital = {
-    "nav_up", "nav_down", "nav_left", "nav_right", "select", "back", "alt", "info",
-    "panel_prev", "panel_next", "power_up", "power_down", "pause", "game_menu", "jump",
-    "crew_all", "doors_open", "doors_close", "autofire", "focus_toggle", "cursor_click",
-    "cursor_rclick", "saved_positions", "return_positions",
-    "menu_up", "menu_down", "menu_left", "menu_right", "menu_select", "menu_back", "menu_alt",
-    "menu_info", "menu_tab_prev", "menu_tab_next", "menu_click", "menu_rclick", "menu_pause", "menu_escape",
+    -- in flight
+    "nav_up", "nav_down", "nav_left", "nav_right",
+    "group_prev", "group_next", "group_crew", "group_systems", "group_ship", "group_enemy",
+    "room_open", "room_send", "room_detail", "room_deselect_all",
+    "detail_toggle_unit", "detail_toggle_door", "detail_back",
+    "target_confirm", "beam_point", "target_cancel",
+    "system_power_up", "system_power_down", "system_off",
+    "slot_toggle", "slot_off", "slot_retarget",
+    "crew_select", "crew_deselect_all", "crew_reorder",
+    "ui_select", "ui_back",
+    "jump", "pause", "ship_screens", "escape_menu",
+    "autofire", "crew_all", "doors_open", "doors_close", "saved_positions", "return_positions",
+    "cursor_click", "cursor_rclick",
+    -- menus
+    "menu_up", "menu_down", "menu_left", "menu_right",
+    "menu_select", "menu_pickup", "menu_drop", "menu_back", "menu_put_back", "menu_alt", "menu_info",
+    "menu_tab_prev", "menu_tab_next", "menu_click", "menu_rclick", "menu_pause", "menu_escape",
 }
 I.analog = { "nav_move", "cursor_move", "menu_nav", "menu_cursor" }
 
--- semantic name -> action name per set
-local menuMap = {
-    nav_up = "menu_up", nav_down = "menu_down", nav_left = "menu_left", nav_right = "menu_right",
-    select = "menu_select", back = "menu_back", alt = "menu_alt", info = "menu_info",
-    panel_prev = "menu_tab_prev", panel_next = "menu_tab_next", cursor_click = "menu_click",
-    cursor_rclick = "menu_rclick", pause = "menu_pause", game_menu = "menu_escape",
-    nav_move = "menu_nav", cursor_move = "menu_cursor",
+-- Physical buttons for the headless test driver (`press a`): the verbs each button
+-- carries by default. The modules decide which verb applies.
+I.BUTTONS = {
+    a = { "room_open", "room_send", "detail_toggle_unit", "detail_toggle_door", "target_confirm", "beam_point",
+          "system_power_up", "slot_toggle", "crew_select", "ui_select", "menu_select", "menu_pickup", "menu_drop" },
+    b = { "room_deselect_all", "detail_back", "target_cancel", "system_power_down", "slot_off", "crew_deselect_all",
+          "ui_back", "menu_back", "menu_put_back" },
+    x = { "room_detail", "system_off", "slot_retarget", "crew_reorder", "menu_alt" },
+    y = { "jump", "menu_info" },
+    lb = { "group_prev", "menu_tab_prev" }, rb = { "group_next", "menu_tab_next" },
+    lt = { "system_power_down" }, rt = { "system_power_up" },
+    start = { "ship_screens", "menu_escape" }, view = { "pause", "menu_pause" },
+    l3 = { "crew_all" },
+    up = { "nav_up", "menu_up" }, down = { "nav_down", "menu_down" }, left = { "nav_left", "menu_left" }, right = { "nav_right", "menu_right" },
 }
-I.currentSet = "Menus"
 
+I.currentSet = "Menus"
+-- the generic navigation names resolve to the menu variants in the Menus set
+local menuMap = { nav_up = "menu_up", nav_down = "menu_down", nav_left = "menu_left", nav_right = "menu_right",
+                  nav_move = "menu_nav", cursor_move = "menu_cursor", cursor_click = "menu_click", cursor_rclick = "menu_rclick" }
 local function resolve(name)
     if I.currentSet == "Menus" then return menuMap[name] or name end
     return name
 end
 
--- state tables keyed by semantic name
 local prev, cur, pressedAt, repeatAt = {}, {}, {}, {}
-local virtual = {}        -- dev harness injects presses here (name -> ticks remaining)
-I.lastDevice = "none"     -- "pad" or "mouse"; used to show/hide the HUD
+local virtual = {}
+I.lastDevice = "none"
 I.lastPadTime = -100
 I.connected = false
 I.anyInput = false
+I.fakeFamily = nil
 
 function I.setSet(name)
     if name ~= I.currentSet then
@@ -46,24 +71,22 @@ function I.setSet(name)
     end
 end
 
-local semantic = {}
-for _, n in ipairs(I.digital) do if not n:match("^menu_") then semantic[#semantic + 1] = n end end
+local tracked = {}
+for _, n in ipairs(I.digital) do if not menuMap[n] then tracked[#tracked + 1] = n end end
+for k in pairs(menuMap) do tracked[#tracked + 1] = k end
 
 local function readDigital(name)
     if virtual[name] and virtual[name] > 0 then return true end
     if not E.native then return false end
-    local s = Ensign.digital(resolve(name))
-    return s
+    return (Ensign.digital(resolve(name)))
 end
 
--- analog direction with hysteresis -> pseudo digital nav presses
 local stickDir = { up = false, down = false, left = false, right = false }
 local function stickDirections()
     if not E.native then return stickDir end
     local x, y = Ensign.analog(resolve("nav_move"))
     local hi, lo = 0.55, 0.35
     local function hyst(on, v) if on then return v > lo else return v > hi end end
-    -- Steam Input: y is positive up for joystick_move
     stickDir.right = hyst(stickDir.right, x)
     stickDir.left = hyst(stickDir.left, -x)
     stickDir.up = hyst(stickDir.up, y)
@@ -79,7 +102,7 @@ function I.update()
     end
     local now = E.time
     local sd = stickDirections()
-    for _, name in ipairs(semantic) do
+    for _, name in ipairs(tracked) do -- luacheck: ignore 421
         prev[name] = cur[name] or false
         local v = readDigital(name)
         if name == "nav_up" then v = v or sd.up
@@ -103,7 +126,6 @@ end
 function I.down(name) return cur[name] or false end
 function I.pressed(name) return (cur[name] or false) and not (prev[name] or false) end
 function I.released(name) return (prev[name] or false) and not (cur[name] or false) end
--- pressed, or held long enough to auto-repeat (for navigation)
 function I.repeated(name)
     if I.pressed(name) then return true end
     if cur[name] and repeatAt[name] and E.time >= repeatAt[name] then
@@ -114,15 +136,11 @@ function I.repeated(name)
 end
 function I.heldFor(name) if cur[name] and pressedAt[name] then return E.time - pressedAt[name] end return 0 end
 
--- analog cursor axis (-1..1), y positive = down (screen space)
 function I.cursorAxis()
     if not E.native then return 0, 0 end
     local x, y, active, mode = Ensign.analog(resolve("cursor_move"))
     if not active then return 0, 0 end
-    -- absolute_mouse mode delivers deltas in pixels; joystick modes deliver -1..1
-    if mode == 4 or mode == 5 then  -- AbsoluteMouse / RelativeMouse
-        return x, -y, true
-    end
+    if mode == 4 or mode == 5 then return x, -y, true end   -- AbsoluteMouse / RelativeMouse deliver deltas
     return x, -y, false
 end
 
@@ -134,27 +152,28 @@ function I.navDirection()
     return nil
 end
 
--- dev harness hooks
-function I.virtualPress(name, ticks) virtual[name] = ticks or 2 end
+-- test driver: press one action, or a physical button (every verb it carries)
+function I.virtualPress(name, ticks)
+    local verbs = I.BUTTONS[name]
+    if verbs then for _, v in ipairs(verbs) do virtual[v] = ticks or 2 end
+    else virtual[name] = ticks or 2 end
+end
 
 -- Fixed fallback glyphs per family, used when Steam has no binding to report
 -- (or by the headless harness via `fakepad`).
-local FALLBACK = {
-    xbox = { select = "xbox_a", back = "xbox_b", alt = "xbox_x", info = "xbox_y", panel_prev = "xbox_lb", panel_next = "xbox_rb",
-             power_up = "xbox_rt", power_down = "xbox_lt", pause = "xbox_menu", game_menu = "xbox_view", jump = "stick_r_click",
-             crew_all = "stick_l_click", nav_up = "dpad", nav_move = "stick_l", cursor_move = "stick_r", focus_toggle = "unknown" },
-    ps = { select = "ps_cross", back = "ps_circle", alt = "ps_square", info = "ps_triangle", panel_prev = "ps_l1", panel_next = "ps_r1",
-           power_up = "ps_r2", power_down = "ps_l2", pause = "ps_options", game_menu = "ps_share", jump = "stick_r_click",
-           crew_all = "stick_l_click", nav_up = "dpad", nav_move = "stick_l", cursor_move = "stick_r" },
-    nin = { select = "nin_a", back = "nin_b", alt = "nin_x", info = "nin_y", panel_prev = "nin_l", panel_next = "nin_r",
-            power_up = "nin_zr", power_down = "nin_zl", pause = "nin_plus", game_menu = "nin_minus", jump = "stick_r_click",
-            crew_all = "stick_l_click", nav_up = "dpad", nav_move = "stick_l", cursor_move = "stick_r" },
-    deck = { select = "deck_a", back = "deck_b", alt = "deck_x", info = "deck_y", panel_prev = "deck_l1", panel_next = "deck_r1",
-             power_up = "deck_r2", power_down = "deck_l2", pause = "deck_menu", game_menu = "deck_view", jump = "stick_r_click",
-             crew_all = "stick_l_click", nav_up = "dpad", nav_move = "stick_l", cursor_move = "pad_r", doors_open = "deck_l4",
-             doors_close = "deck_r4", autofire = "deck_l5", focus_toggle = "deck_r5" },
+local FALLBACK_BUTTON = {
+    xbox = { a = "xbox_a", b = "xbox_b", x = "xbox_x", y = "xbox_y", lb = "xbox_lb", rb = "xbox_rb", lt = "xbox_lt", rt = "xbox_rt",
+             start = "xbox_menu", view = "xbox_view", l3 = "stick_l_click", up = "dpad", nav_move = "stick_l", cursor_move = "stick_r" },
+    ps = { a = "ps_cross", b = "ps_circle", x = "ps_square", y = "ps_triangle", lb = "ps_l1", rb = "ps_r1", lt = "ps_l2", rt = "ps_r2",
+           start = "ps_options", view = "ps_share", l3 = "stick_l_click", up = "dpad", nav_move = "stick_l", cursor_move = "stick_r" },
+    nin = { a = "nin_a", b = "nin_b", x = "nin_x", y = "nin_y", lb = "nin_l", rb = "nin_r", lt = "nin_zl", rt = "nin_zr",
+            start = "nin_plus", view = "nin_minus", l3 = "stick_l_click", up = "dpad", nav_move = "stick_l", cursor_move = "stick_r" },
+    deck = { a = "deck_a", b = "deck_b", x = "deck_x", y = "deck_y", lb = "deck_l1", rb = "deck_r1", lt = "deck_l2", rt = "deck_r2",
+             start = "deck_menu", view = "deck_view", l3 = "stick_l_click", up = "dpad", nav_move = "stick_l", cursor_move = "pad_r" },
 }
-I.fakeFamily = nil
+local verbButton = {}
+for btn, verbs in pairs(I.BUTTONS) do for _, v in ipairs(verbs) do verbButton[v] = verbButton[v] or btn end end
+verbButton.doors_open, verbButton.doors_close, verbButton.autofire, verbButton.group_enemy = "l4", "r4", "l5", "r5"
 
 function I.glyph(name)
     if E.native and not I.fakeFamily then
@@ -163,8 +182,10 @@ function I.glyph(name)
     end
     local family = I.fakeFamily
     if not family and E.native then local _, _, f = Ensign.controllerType(); family = f end
-    local tab = FALLBACK[family or "xbox"] or FALLBACK.xbox
-    local g = tab[name]
+    local tab = FALLBACK_BUTTON[family or "xbox"] or FALLBACK_BUTTON.xbox
+    local btn = verbButton[name] or name
+    if family == "deck" and (btn == "l4" or btn == "r4" or btn == "l5" or btn == "r5") then return "deck_" .. btn, name end
+    local g = tab[btn] or (btn == "down" or btn == "left" or btn == "right") and "dpad" or nil
     if g then return g, name end
     return nil
 end

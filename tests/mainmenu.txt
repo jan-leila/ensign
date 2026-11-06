@@ -7,10 +7,10 @@ wait 0.3
 nav down
 wait 0.3
 dump
-press select
+press a
 wait 2
 dump
-press back
+press b
 wait 2
 expect_screen mainmenu
 dump

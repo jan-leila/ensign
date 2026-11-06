@@ -1,23 +1,23 @@
 wait 6
 focus button 0
-press select
+press a
 wait_screen shipbuilder 10
 focus button 1
-press select
+press a
 wait 3
 focus choice 0
-press select
+press a
 wait 1
-press_if event select
+press_if event a
 wait 1
-press_if event select
+press_if event a
 wait_screen game 6
 fakepad xbox
 event STORE
 wait 2
 dump
 focus choice 0
-press select
+press a
 wait 2
 dump
 wait_screen store 8
@@ -28,11 +28,11 @@ wait 0.4
 nav right
 wait 0.4
 dump
-press panel_next
+press rb
 wait 0.6
 dump
 shot store_tab2
-press back
+press b
 wait 1
 dump
 end

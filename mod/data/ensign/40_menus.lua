@@ -140,15 +140,15 @@ function M.update(screen)
     end
 
     if M.carry and screen ~= M.carry.screen then C.release(1); M.carry = nil end
-    if I.pressed("select") or I.pressed("cursor_click") then
-        if M.carry then
-            C.release(1)                -- drop where the frame is
-            M.carry = nil
-        elseif C.focus and PICKABLE[C.focus.kind] and I.pressed("select") then
-            C.snapTo(C.focus)
-            C.press(1)                  -- pick up: the button stays held while the frame moves
-            M.carry = { origin = C.focus, screen = screen }
-        elseif screen == "rename" or screen == "input" then
+    if M.carry and I.pressed("menu_drop") then
+        C.release(1)                -- drop where the frame is
+        M.carry = nil
+    elseif not M.carry and C.focus and PICKABLE[C.focus.kind] and I.pressed("menu_pickup") then
+        C.snapTo(C.focus)
+        C.press(1)                  -- pick up: the button stays held while the frame moves
+        M.carry = { origin = C.focus, screen = screen }
+    elseif not M.carry and (I.pressed("menu_select") or I.pressed("cursor_click")) then
+        if screen == "rename" or screen == "input" then
             C.key(E.KEY.RETURN)
         elseif screen == "starmap" and C.focus and C.focus.kind == "location" and M.lastLocation and E.sameHit(C.focus, M.lastLocation) then
             -- second press on the same beacon: jump
@@ -159,13 +159,13 @@ function M.update(screen)
             if screen == "starmap" and C.focus and C.focus.kind == "location" then M.lastLocation = C.focus end
         end
     end
-    if I.pressed("alt") or I.pressed("cursor_rclick") then clickFocus(3) end
-    if I.pressed("back") then
-        if M.carry then
-            C.snapTo(M.carry.origin)   -- put it back
-            C.release(1)
-            M.carry = nil
-        elseif screen == "confirm" then
+    if I.pressed("menu_alt") or I.pressed("cursor_rclick") then clickFocus(3) end
+    if M.carry and I.pressed("menu_put_back") then
+        C.snapTo(M.carry.origin)   -- put it back
+        C.release(1)
+        M.carry = nil
+    elseif not M.carry and I.pressed("menu_back") then
+        if screen == "confirm" then
             local no = findHit("confirm_no")
             if no then C.snapTo(no); C.click(1) end
         elseif screen == "mainmenu" then -- luacheck: ignore 542
@@ -184,39 +184,39 @@ function M.update(screen)
             C.key(E.KEY.ESC)
         end
     end
-    if I.pressed("panel_prev") then cycleTabs(-1) end
-    if I.pressed("panel_next") then cycleTabs(1) end
-    if I.pressed("game_menu") then C.key(E.KEY.ESC) end
-    if I.pressed("pause") and screen == "starmap" then
+    if I.pressed("menu_tab_prev") then cycleTabs(-1) end
+    if I.pressed("menu_tab_next") then cycleTabs(1) end
+    if I.pressed("menu_escape") then C.key(E.KEY.ESC) end
+    if I.pressed("menu_pause") and screen == "starmap" then
         local wait = findHit("button", 2)
         if wait then C.snapTo(wait); C.click(1) end
     end
-    if I.pressed("jump") and screen == "starmap" then
+    if I.pressed("menu_info") and screen == "starmap" and false then
         local jb = findHit("button", 1)
         if jb then C.snapTo(jb); C.click(1) end
     end
-    if I.pressed("info") and screen == "starmap" then
+    if I.pressed("menu_info") and screen == "starmap" then
         local d = findHit("button", 3)
         if d then C.snapTo(d); C.click(1) end
     end
 
     -- HUD hints
-    local hint = { { "nav_up", "Navigate" }, { "select", "Select" } }
-    if screen == "confirm" then hint[#hint + 1] = { "back", "No" }
+    local hint = { { "nav_up", "Navigate" }, { "menu_select", "Select" } }
+    if screen == "confirm" then hint[#hint + 1] = { "menu_back", "No" }
     elseif screen == "starmap" then
-        hint = { { "nav_up", "Beacon" }, { "select", "Jump there" }, { "pause", "Wait" }, { "back", "Close map" } }
+        hint = { { "nav_up", "Beacon" }, { "menu_select", "Jump there" }, { "menu_pause", "Wait" }, { "menu_back", "Close map" } }
     elseif screen == "store" or screen == "shipscreens" then
-        if M.carry then hint = { { "nav_up", "Move" }, { "select", "Drop" }, { "back", "Put back" } }
+        if M.carry then hint = { { "nav_up", "Move" }, { "menu_drop", "Drop" }, { "menu_put_back", "Put back" } }
         else
-            if C.focus and PICKABLE[C.focus.kind] then hint[2] = { "select", "Pick up" } end
-            hint[#hint + 1] = { "panel_next", "Tab" }; hint[#hint + 1] = { "alt", "Alt" }; hint[#hint + 1] = { "back", "Close" }
+            if C.focus and PICKABLE[C.focus.kind] then hint[2] = { "menu_pickup", "Pick up" } end
+            hint[#hint + 1] = { "menu_tab_next", "Tab" }; hint[#hint + 1] = { "menu_alt", "Alt" }; hint[#hint + 1] = { "menu_back", "Close" }
         end
     elseif screen == "options" or screen == "pausemenu" or screen == "scores" then
-        hint[#hint + 1] = { "back", "Close" }
+        hint[#hint + 1] = { "menu_back", "Close" }
     elseif screen == "rename" or screen == "input" then
-        hint = { { "select", "Confirm" }, { "back", "Cancel" } }
+        hint = { { "menu_select", "Confirm" }, { "menu_back", "Cancel" } }
     elseif screen == "shipbuilder" or screen == "shipselect" then
-        hint[#hint + 1] = { "panel_next", "Type" }; hint[#hint + 1] = { "back", "Back" }
+        hint[#hint + 1] = { "menu_tab_next", "Type" }; hint[#hint + 1] = { "menu_back", "Back" }
     end
     M.hint = hint
 end

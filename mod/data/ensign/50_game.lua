@@ -1,18 +1,19 @@
 -- 50_game.lua: in-flight controls.
 --
--- Panels (bumpers cycle them, focus_toggle jumps between the ships):
---   ship     room mode over your rooms; A on a room opens DETAIL mode
---   enemy    the enemy's rooms (forced while a weapon / power is aimed)
---   power    the reactor's system boxes
---   weapons  weapon and drone slots (empty slots are skipped) + autofire
+-- Groups (the bumpers rotate them; panel_crew / panel_systems / panel_ship jump directly):
 --   crew     the crew portraits on the left
---   top      FTL button, ship / store / options buttons
+--   systems  reactor system boxes + weapon and drone slots (empty slots skipped) + autofire
+--   ship     room mode over your rooms; detail mode underneath walks units and doors
+--   enemy    the enemy's rooms (joins the rotation when a target is present; forced
+--            while a weapon / power is aimed)
+--   top      FTL / ship / options buttons (reached with the d-pad above the ship)
 --
--- Detail mode walks the units and doors of the ship one by one: inside a room
--- the d-pad moves between its units; leaving the room goes to the door on that
--- wall first and then into the next room. A toggles a unit in the selection
--- (selection persists across rooms) or opens/closes a door; B returns to room
--- mode, where A on a room sends the selected units there.
+-- Buttons in flight:
+--   A  room: open detail (or send the selected units there)   detail: toggle unit / door
+--      system box: power +      slot: toggle      crew portrait: select (adds)
+--   B  detail: back to rooms    rooms: deselect all    system box: power -    slot: turn off
+--   X  room: open detail (even with units selected)   system box: turn off   slot: re-target
+--   Y  FTL jump       Start: ship screens       View: pause       d-pad: move, crossing group edges
 local E = ENSIGN
 local G = {}
 E.game = G
@@ -21,34 +22,34 @@ local I, C, N
 G.panel = "ship"
 G.hits = {}
 G.panelHits = {}
-G.detail = false            -- detail mode active
-G.target = nil              -- current detail target: crew / door / anchor
+G.detail = false
+G.target = nil
 G.targets = {}
-G.drag = nil                -- "select" or "alt" while a button is held for a drag
-G.targeting = nil           -- "weapon" | "beam" | "bomb" | "teleport" | "hack" | "mind" | nil
+G.drag = nil
+G.targeting = nil
 G.beamStage = 0
 G.hint = {}
 G.lastPanel = nil
 G.prevFocus = nil
+G.restore = nil
 
-local PANEL_ORDER = { "ship", "enemy", "power", "weapons", "crew", "top" }
-local PANEL_LABEL = { ship = "YOUR SHIP", enemy = "ENEMY SHIP", power = "POWER", weapons = "WEAPONS & DRONES",
+local PANEL_ORDER = { "crew", "systems", "ship", "enemy" }
+local PANEL_LABEL = { ship = "YOUR SHIP", enemy = "ENEMY SHIP", systems = "SYSTEMS & WEAPONS",
                       crew = "CREW", top = "CONTROLS" }
-local PREFERRED = { ship = "room", enemy = "room", power = "sysbox", weapons = "armament", crew = "crewbox", top = "ftl" }
+local PREFERRED = { ship = "room", enemy = "room", systems = "sysbox", crew = "crewbox", top = "ftl" }
 local SYS = { shields = 0, engines = 1, oxygen = 2, weapons = 3, drones = 4, medbay = 5, pilot = 6,
               sensors = 7, doors = 8, teleporter = 9, cloaking = 10, artillery = 11, battery = 12,
               clonebay = 13, mind = 14, hacking = 15 }
--- screen layout: moving past the edge of a panel crosses into its neighbour
+-- screen layout: moving past the edge of a group crosses into its neighbour
 local NEIGHBOR = {
-    ship    = { down = "weapons", up = "top", left = "crew", right = "enemy" },
-    enemy   = { left = "ship", down = "weapons", up = "top" },
-    weapons = { up = "ship", left = "power", right = "power" },   -- subsystems sit right of the weapons
-    power   = { right = "weapons", left = "weapons", up = "crew" },
-    crew    = { right = "ship", down = "power", up = "top" },
+    ship    = { down = "systems", up = "top", left = "crew", right = "enemy" },
+    enemy   = { left = "ship", down = "systems", up = "top" },
+    systems = { up = "ship", left = "crew" },
+    crew    = { right = "ship", down = "systems", up = "top" },
     top     = { down = "ship" },
 }
-local DRAG_LEFT = { armament = true }
-local DRAG_RIGHT = { crewbox = true }
+
+
 
 local function hasSystem(id)
     local ok, v = pcall(function() return E.playerShip():HasSystem(id) end)
@@ -58,10 +59,10 @@ end
 local function kindFilter(panel)
     if panel == "ship" then return function(h) return h.kind == "room" and h.extra == 0 end
     elseif panel == "enemy" then return function(h) return h.kind == "room" and h.extra == 1 end
-    elseif panel == "power" then return function(h) return h.kind == "sysbox" end
-    elseif panel == "weapons" then
+    elseif panel == "systems" then
         local w, d = hasSystem(SYS.weapons), hasSystem(SYS.drones)
         return function(h)
+            if h.kind == "sysbox" then return true end
             if h.kind == "autofire" then return w end
             if h.kind ~= "armament" or h.label == "" then return false end   -- empty slots are skipped
             return (h.extra == 3 and w) or (h.extra == 4 and d)
@@ -124,9 +125,7 @@ local function rebuildSelection()
     end)
 end
 local function toggleSelect(crew)
-    pcall(function()
-        crew.selectionState = (crew.selectionState == 1) and 0 or 1
-    end)
+    pcall(function() crew.selectionState = (crew.selectionState == 1) and 0 or 1 end)
     rebuildSelection()
 end
 -- FTL clears the crew selection on any left click (doors included); remember it and put it back
@@ -145,7 +144,6 @@ local function restoreSelection(keep)
     end)
     rebuildSelection()
 end
-
 local function clearSelection()
     pcall(function()
         local list = E.playerShip().vCrewList
@@ -175,7 +173,7 @@ function G.allDoors()
     return out
 end
 
--- units, doors and (for empty rooms) an anchor, for the ship of the current panel
+-- units, doors and (for empty rooms) the room itself, for the ship of the current group
 local function buildTargets(shipId)
     local out = {}
     local ship = E.playerShip()
@@ -197,7 +195,7 @@ local function buildTargets(shipId)
     end)
     for _, h in ipairs(G.hits) do
         if h.kind == "room" and h.extra == shipId and not occupied[h.id] then
-            out[#out + 1] = { kind = "anchor", id = h.id, x = h.x + h.w / 2 - 10, y = h.y + h.h / 2 - 10, w = 20, h = 20, roomId = h.id }
+            out[#out + 1] = { kind = "anchor", id = h.id, x = h.x, y = h.y, w = h.w, h = h.h, roomId = h.id }   -- the whole room
         end
     end
     if shipId == 0 then
@@ -206,9 +204,7 @@ local function buildTargets(shipId)
     return out
 end
 
-local function sameTarget(a, b)
-    return a and b and a.kind == b.kind and a.id == b.id
-end
+local function sameTarget(a, b) return a and b and a.kind == b.kind and a.id == b.id end
 local function refreshTarget(t, targets)
     if not t then return nil end
     for _, x in ipairs(targets) do
@@ -269,7 +265,7 @@ end
 -- d-pad in detail mode: same room first, then the door on that wall, then the next room
 local function detailNav(dir, shipId)
     local cur = G.target
-    if not cur then return end
+    if not cur then return false end
     local R = targetRoom(cur)
     local function pickFrom(list, extra)
         local cands = {}
@@ -277,9 +273,10 @@ local function detailNav(dir, shipId)
         return N.pick(cur, cands, dir, nil, true)   -- strict cone: only what is really in that direction
     end
     local roomR = roomHit(R, shipId)
-    -- 1. inside the current room (units, anchor), then its doors on the wall facing `dir`
+    -- 1. inside the current room (units, anchor), then its doors: from a unit only the
+    --    door on the wall facing `dir`; from a door any door of the room in that direction
     local nxt = pickFrom(G.targets, function(t) return t.kind ~= "door" and inRoom(t, R) end)
-    if not nxt then nxt = pickFrom(G.targets, function(t) return t.kind == "door" and inRoom(t, R) and doorOnWall(t, roomR, dir) end) end
+    if not nxt then nxt = pickFrom(G.targets, function(t) return t.kind == "door" and inRoom(t, R) and (cur.kind == "door" or doorOnWall(t, roomR, dir)) end) end
     local side = R
     if not nxt and cur.kind == "door" then
         -- 2. through the door into the other room (its units first, then its far doors)
@@ -302,8 +299,8 @@ local function detailNav(dir, shipId)
         end
     end
     if not nxt and roomR then
-        -- 3. no door on that wall: move to the next room in that direction (same row/column
-        --    preferred, like room mode) and land on its unit nearest to where we were
+        -- 3. no door on that wall: move to the next room in that direction and land on
+        --    its unit nearest to where we were
         local rooms = {}
         for _, h in ipairs(G.hits) do if h.kind == "room" and h.extra == shipId then rooms[#rooms + 1] = h end end
         local nextRoom = N.pick(roomR, rooms, dir)
@@ -329,7 +326,7 @@ local function detailNav(dir, shipId)
     return false
 end
 
--- ---- panels -----------------------------------------------------------------
+-- ---- groups -----------------------------------------------------------------
 local function firstHit(panel, hits)
     local pref = PREFERRED[panel]
     local cands = {}
@@ -355,6 +352,7 @@ end
 local function cyclePanel(dir)
     local idx = 1
     for i, p in ipairs(PANEL_ORDER) do if p == G.panel then idx = i end end
+    if G.panel == "top" then idx = 3 end
     for _ = 1, #PANEL_ORDER do
         idx = idx + dir
         if idx < 1 then idx = #PANEL_ORDER elseif idx > #PANEL_ORDER then idx = 1 end
@@ -366,20 +364,16 @@ local function cyclePanel(dir)
     end
 end
 
--- cross into the neighbouring panel in that direction, landing nearest to the cursor
+-- cross into the neighbouring group in that direction, landing in the direction of travel
 local function transition(dir)
     local nb = NEIGHBOR[G.panel] and NEIGHBOR[G.panel][dir]
-    if G.panel == "power" and C.focus then
-        -- only the cluster facing the weapons crosses over to them
-        if (dir == "right" and C.focus.x >= 640) or (dir == "left" and C.focus.x < 640) then nb = nil end
-    end
+    if G.panel == "systems" and dir == "up" and C.focus and C.focus.x < 250 then nb = "crew" end
     if nb == "enemy" and not panelAvailable("enemy") then nb = nil end
     if not nb or not panelAvailable(nb) then return false end
     G.panel = nb
     leaveDetail()
     G.panelHits = collect(nb)
     C.mode = "snap"
-    -- land on the element that continues the movement, else the nearest one
     local from = { x = C.x - 1, y = C.y - 1, w = 2, h = 2, kind = "_cursor", id = -1 }
     C.snapTo(N.pick(from, G.panelHits, dir) or N.nearest(C.x, C.y, G.panelHits))
     E.feedback.tick()
@@ -388,14 +382,17 @@ end
 
 local function hotkey(name, fallback) C.key(E.hotkey(name, fallback)) end
 
-local function systemHotkeys(sysId)
-    if sysId == SYS.cloaking then return "activate_cloak", nil
-    elseif sysId == SYS.teleporter then return "send_tele", "ret_tele"
-    elseif sysId == SYS.hacking then return "start_hacking", nil
-    elseif sysId == SYS.mind then return "mindControl", nil
-    elseif sysId == SYS.battery then return "activate_battery", nil
-    elseif sysId == SYS.doors then return "open", "close" end
-    return nil, nil
+local function systemPower(sysId)
+    local ok, p = pcall(function() return E.playerShip():GetSystem(sysId).powerState.first end)
+    return ok and p or 0
+end
+local function slotPowered(h)
+    local ok, v = pcall(function()
+        local ship = E.playerShip()
+        if h.extra == 3 then return ship.weaponSystem.weapons[h.id].powered end
+        return ship.droneSystem.drones[h.id].powered
+    end)
+    return ok and v or false
 end
 
 local function shipIdOfPanel() return G.panel == "enemy" and 1 or 0 end
@@ -429,7 +426,7 @@ function G.update()
     if G.detail then
         local r = roomHit(targetRoom(G.target), shipIdOfPanel())
         C.focus = r or C.focus
-        C.x, C.y = E.center(G.target)   -- keep the pointer on the target without re-snapping
+        C.x, C.y = E.center(G.target)
         C.sync()
     else
         C.focus = N.refresh(C.focus, G.panelHits) or (C.mode == "snap" and firstHit(G.panel, G.panelHits) or nil)
@@ -437,21 +434,25 @@ function G.update()
     end
     G.prevFocus = C.focus
     local focus = C.focus
+    local onShip = (G.panel == "ship" or G.panel == "enemy") and not G.targeting
 
     if G.restore and E.frame >= G.restore.at then restoreSelection(G.restore.keep); G.restore = nil end
+    if G.drag == "select" and I.released("slot_toggle") then C.release(1); G.drag = nil end
+    if G.drag == "alt" and I.released("crew_reorder") then C.release(3); G.drag = nil end
 
-    -- release a held drag button
-    if G.drag == "select" and I.released("select") then C.release(1); G.drag = nil end
-    if G.drag == "alt" and I.released("alt") then C.release(3); G.drag = nil end
-
-    if I.pressed("panel_prev") then cyclePanel(-1) end
-    if I.pressed("panel_next") then cyclePanel(1) end
-    if I.pressed("focus_toggle") then
+    -- groups
+    if I.pressed("group_prev") then cyclePanel(-1) end
+    if I.pressed("group_next") then cyclePanel(1) end
+    if I.pressed("group_crew") and panelAvailable("crew") then setPanel("crew") end
+    if I.pressed("group_systems") and panelAvailable("systems") then setPanel("systems") end
+    if I.pressed("group_ship") and panelAvailable("ship") then setPanel("ship") end
+    if I.pressed("group_enemy") then
         if G.panel == "enemy" then setPanel("ship") elseif panelAvailable("enemy") then setPanel("enemy") end
     end
 
     if C.updateFree() then leaveDetail() end
 
+    -- d-pad
     local dir = I.navDirection()
     if dir then
         if G.detail then
@@ -464,14 +465,7 @@ function G.update()
             C.moveTo(C.x + dx, C.y + dy)
         else
             local from = focus or { x = C.x - 1, y = C.y - 1, w = 2, h = 2, kind = "_cursor", id = -1 }
-            -- the power panel has two clusters (systems left, subsystems right) with the
-            -- weapons in between: stay inside the cluster, transitions bridge the gap
-            local filter = nil
-            if G.panel == "power" and focus then
-                local leftSide = focus.x < 640
-                filter = function(h) return (h.x < 640) == leftSide end
-            end
-            local nxt = N.pick(from, G.panelHits, dir, filter)
+            local nxt = N.pick(from, G.panelHits, dir)
             if nxt then
                 C.mode = "snap"
                 C.snapTo(nxt)
@@ -482,82 +476,77 @@ function G.update()
         end
     end
 
-    -- select
-    if I.pressed("select") or I.pressed("cursor_click") then
-        if G.detail and G.target then
-            local t = G.target
-            if t.kind == "crew" then
-                toggleSelect(t.crew)
-                E.feedback.pulse("select")
-            elseif t.kind == "door" then
-                C.moveTo(E.center(t))
-                C.click(1)
-                G.restore = { keep = rememberSelection(), at = E.frame + 3 }
-                E.feedback.pulse("select")
-            end
-        elseif G.targeting == "beam" then
+    -- state-specific verbs (each is its own Steam action; several share a button by default)
+    local sysFocus = G.panel == "systems" and focus and focus.kind == "sysbox"
+    local slotFocus = G.panel == "systems" and focus and focus.kind == "armament"
+    if G.detail and G.target then
+        local t = G.target
+        if t.kind == "crew" and I.pressed("detail_toggle_unit") then
+            toggleSelect(t.crew)
+            E.feedback.pulse("select")
+        elseif t.kind == "door" and I.pressed("detail_toggle_door") then
+            C.moveTo(E.center(t))
+            C.click(1)
+            G.restore = { keep = rememberSelection(), at = E.frame + 3 }
+            E.feedback.pulse("select")
+        end
+        if I.pressed("detail_back") then
+            local r = roomHit(targetRoom(t), shipIdOfPanel())
+            leaveDetail()
+            if r then C.snapTo(r) elseif focus then C.snapTo(focus) end
+        end
+    elseif G.targeting == "beam" then
+        if I.pressed("beam_point") then
             C.click(1)
             G.beamStage = G.beamStage == 0 and 1 or 0
             if G.beamStage == 1 then C.mode = "free" end
-        elseif focus and focus.kind == "room" and selectedCrewCount() > 0 and not G.targeting then
-            C.click(3)                  -- FTL issues move orders with the right button
-            E.feedback.pulse("select")
-        elseif focus and focus.kind == "room" and not G.targeting then
+        end
+        if I.pressed("target_cancel") then C.click(3) end
+    elseif G.targeting then
+        if I.pressed("target_confirm") then C.click(1) end
+        if I.pressed("target_cancel") then C.click(3) end
+    elseif onShip and focus and focus.kind == "room" then
+        if selectedCrewCount() > 0 then
+            if I.pressed("room_send") then C.click(3); E.feedback.pulse("select") end      -- FTL: right button sends
+            if I.pressed("room_deselect_all") then clearSelection() end
+        elseif I.pressed("room_open") then
             if not enterDetail(focus, shipIdOfPanel()) then C.click(1) end
-        elseif focus and DRAG_LEFT[focus.kind] and I.pressed("select") then
-            C.press(1)                  -- hold to drag a slot, tap to arm
-            G.drag = "select"
-        else
-            C.click(1)
         end
-    end
-    -- alt / right button
-    if I.pressed("alt") or I.pressed("cursor_rclick") then
-        if focus and DRAG_RIGHT[focus.kind] and I.pressed("alt") then
-            C.press(3)
-            G.drag = "alt"
-        elseif focus and focus.kind == "sysbox" and focus.id == SYS.teleporter then
-            hotkey("ret_tele", nil)
-        elseif focus and focus.kind == "sysbox" and focus.id == SYS.doors then
-            hotkey("close", 120)
-        else
-            C.click(3)
+        if I.pressed("room_detail") then enterDetail(focus, shipIdOfPanel()) end
+    elseif sysFocus then
+        if I.pressed("system_power_up") then C.snapTo(focus); C.click(1) end
+        if I.pressed("system_power_down") then C.snapTo(focus); C.click(3) end
+        if I.pressed("system_off") then
+            C.snapTo(focus)
+            for _ = 1, systemPower(focus.id) do C.click(3) end   -- remove every bar
         end
-    end
-    -- back
-    if I.pressed("back") then
-        if G.detail then
-            local r = roomHit(targetRoom(G.target), shipIdOfPanel())
-            leaveDetail()
-            if r then C.snapTo(r) elseif focus then C.snapTo(focus) end
-        elseif G.targeting then
-            C.click(3)
-        elseif G.panel ~= "ship" then
-            setPanel("ship")
-        elseif selectedCrewCount() > 0 then
-            clearSelection()
+    elseif slotFocus then
+        if I.pressed("slot_toggle") then C.press(1); G.drag = "select" end   -- tap: toggle; hold: move
+        if I.pressed("slot_off") then C.snapTo(focus); C.click(3) end
+        if I.pressed("slot_retarget") then
+            C.snapTo(focus)
+            if not slotPowered(focus) then C.click(1) end       -- power it first
+            C.click(1)                                          -- then arm / re-target
         end
+    elseif G.panel == "crew" and focus and focus.kind == "crewbox" then
+        if I.pressed("crew_select") then C.click(1, { shift = selectedCrewCount() > 0 }) end
+        if I.pressed("crew_deselect_all") then clearSelection() end
+        if I.pressed("crew_reorder") then C.press(3); G.drag = "alt" end
+    else
+        if I.pressed("ui_select") then C.click(1) end
     end
-    -- info / Y: special systems, autofire
-    if I.pressed("info") then
-        if focus and focus.kind == "sysbox" then
-            local primary = systemHotkeys(focus.id)
-            if primary then hotkey(primary, nil) end
-        elseif G.panel == "weapons" then
-            hotkey("autofire", 118)
-        end
+    if I.pressed("cursor_click") then C.click(1) end
+    if I.pressed("cursor_rclick") then C.click(3) end
+    -- deselecting works from any group while units are selected
+    if not G.detail and not G.targeting and selectedCrewCount() > 0 and not (onShip and focus and focus.kind == "room")
+       and (I.pressed("room_deselect_all") or I.pressed("crew_deselect_all")) and G.panel ~= "crew" then
+        clearSelection()
     end
-    if I.pressed("power_up") and (G.panel == "power" or G.panel == "weapons") then
-        if focus then C.snapTo(focus) end
-        C.click(1)
-    end
-    if I.pressed("power_down") and (G.panel == "power" or G.panel == "weapons") then
-        if focus then C.snapTo(focus) end
-        C.click(3)
-    end
-    if I.pressed("pause") then hotkey("pause", E.KEY.SPACE) end
-    if I.pressed("game_menu") then C.key(E.KEY.ESC) end
+    -- global
     if I.pressed("jump") then hotkey("jump", 106) end
+    if I.pressed("pause") then hotkey("pause", E.KEY.SPACE) end
+    if I.pressed("ship_screens") then hotkey("ship_info", 117) end   -- systems / crew / inventory
+    if I.pressed("escape_menu") then C.key(E.KEY.ESC) end
     if I.pressed("autofire") then hotkey("autofire", 118) end
     if I.pressed("crew_all") then hotkey("crew_all", 113) end
     if I.pressed("doors_open") then hotkey("open", 122) end
@@ -565,49 +554,49 @@ function G.update()
     if I.pressed("saved_positions") then hotkey("loadPositions", nil) end
     if I.pressed("return_positions") then hotkey("savePositions", nil) end
 
-    -- hints
+    -- hints (named by the verb that applies, so the glyph follows the user's binding)
     local nsel = selectedCrewCount()
     local hint = { { "nav_up", "Move" } }
     if G.detail then
         local t = G.target
         if t and t.kind == "crew" then
-            hint[#hint + 1] = { "select", (t.crew.selectionState == 1) and "Deselect" or "Select" }
+            hint[#hint + 1] = { "detail_toggle_unit", (t.crew.selectionState == 1) and "Deselect" or "Select" }
         elseif t and t.kind == "door" then
-            hint[#hint + 1] = { "select", "Open / close" }
+            hint[#hint + 1] = { "detail_toggle_door", "Open / close" }
         end
-        hint[#hint + 1] = { "back", nsel > 0 and "Rooms (send)" or "Rooms" }
+        hint[#hint + 1] = { "detail_back", "Rooms" }
     elseif G.targeting == "beam" then
-        hint[#hint + 1] = { "select", G.beamStage == 0 and "Beam start" or "Beam end" }
-        hint[#hint + 1] = { "back", "Cancel" }
+        hint[#hint + 1] = { "beam_point", G.beamStage == 0 and "Beam start" or "Beam end" }
+        hint[#hint + 1] = { "target_cancel", "Cancel" }
     elseif G.targeting then
-        hint[#hint + 1] = { "select", "Target" }
-        hint[#hint + 1] = { "back", "Cancel" }
-        if G.targeting == "bomb" or G.targeting == "teleport" then hint[#hint + 1] = { "focus_toggle", "Other ship" } end
+        hint[#hint + 1] = { "target_confirm", "Target" }
+        hint[#hint + 1] = { "target_cancel", "Cancel" }
+        if G.targeting == "bomb" or G.targeting == "teleport" then hint[#hint + 1] = { "group_enemy", "Other ship" } end
     elseif G.panel == "ship" or G.panel == "enemy" then
-        hint[#hint + 1] = { "select", nsel > 0 and ("Send " .. nsel) or "Units & doors" }
-        if nsel > 0 then hint[#hint + 1] = { "back", "Deselect all" } end
-        hint[#hint + 1] = { "panel_next", "Panel" }
-    elseif G.panel == "power" then
-        hint[#hint + 1] = { "power_up", "Power +" }; hint[#hint + 1] = { "power_down", "Power -" }
-        if focus and systemHotkeys(focus.id) then hint[#hint + 1] = { "info", "Activate" } end
-        hint[#hint + 1] = { "panel_next", "Panel" }
-    elseif G.panel == "weapons" then
-        hint[#hint + 1] = { "select", "Arm / deploy (hold: move)" }
-        hint[#hint + 1] = { "alt", "Depower" }
-        hint[#hint + 1] = { "info", "Autofire" }
-        hint[#hint + 1] = { "panel_next", "Panel" }
+        if nsel > 0 then
+            hint[#hint + 1] = { "room_send", "Send " .. nsel }; hint[#hint + 1] = { "room_detail", "Units & doors" }; hint[#hint + 1] = { "room_deselect_all", "Deselect all" }
+        else
+            hint[#hint + 1] = { "room_open", "Units & doors" }
+        end
+    elseif sysFocus then
+        hint[#hint + 1] = { "system_power_up", "Power +" }; hint[#hint + 1] = { "system_power_down", "Power -" }; hint[#hint + 1] = { "system_off", "Turn off" }
+    elseif slotFocus then
+        hint[#hint + 1] = { "slot_toggle", "Toggle (hold: move)" }; hint[#hint + 1] = { "slot_off", "Turn off" }; hint[#hint + 1] = { "slot_retarget", "Re-target" }
     elseif G.panel == "crew" then
-        hint[#hint + 1] = { "select", "Select" }; hint[#hint + 1] = { "alt", "Hold: reorder" }
-        hint[#hint + 1] = { "panel_next", "Panel" }
+        hint[#hint + 1] = { "crew_select", nsel > 0 and "Add" or "Select" }; hint[#hint + 1] = { "crew_reorder", "Hold: reorder" }
+        if nsel > 0 then hint[#hint + 1] = { "crew_deselect_all", "Deselect all" } end
     else
-        hint[#hint + 1] = { "select", "Select" }; hint[#hint + 1] = { "panel_next", "Panel" }
+        hint[#hint + 1] = { "ui_select", "Select" }
     end
-    hint[#hint + 1] = { "pause", "Pause" }
+    hint[#hint + 1] = { "jump", "Jump" }
+    hint[#hint + 1] = { "group_next", "Group" }
     G.hint = hint
 end
 
 function G.render()
-    if G.detail and G.target then
+    if G.detail and G.target and G.target.kind == "anchor" then
+        C.drawFrame(G.target)              -- an empty room looks exactly like room mode
+    elseif G.detail and G.target then
         C.drawFrame(G.target, nil, 2)
         if C.focus then C.drawFrame(C.focus, Graphics.GL_Color(1, 1, 1, 0.35), 3) end
     elseif C.mode == "snap" and C.focus then
@@ -616,4 +605,4 @@ function G.render()
 end
 
 function G.panelLabel() return PANEL_LABEL[G.panel] or "" end
-function G.setPanel(name) I, C, N = E.input, E.cursor, E.nav; leaveDetail(); setPanel(name) end
+function G.setPanel(name) I, C, N = E.input, E.cursor, E.nav; leaveDetail(); setPanel(name) end -- luacheck: ignore

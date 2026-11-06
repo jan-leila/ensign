@@ -1,0 +1,46 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+press view
+wait 0.4
+panel ship
+wait 0.3
+log --- select a unit in room 14, back, Y on room 10, select its unit, back, send both to room 6
+focus room 14
+wait 0.3
+press a
+wait 0.4
+press a
+wait 0.4
+press b
+wait 0.4
+focus room 10
+wait 0.3
+press x
+wait 0.4
+dump
+press a
+wait 0.4
+dump
+press b
+wait 0.4
+focus room 6
+wait 0.3
+press a
+wait 0.4
+press view
+wait 7
+dump
+end

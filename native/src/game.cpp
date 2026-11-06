@@ -391,6 +391,9 @@ void add_ingame(std::vector<game::Hit>& out, CApp* a) {
 }
 
 void add_starmap(std::vector<game::Hit>& out, StarMap& sm) {
+    static bool trace = getenv("ENSIGN_TRACE") != nullptr;
+#define TS(s) do { if (trace) ensign::logf("  starmap: %s", s); } while (0)
+    TS("begin");
     if (sm.bChoosingNewSector) {
         size_t n = vsize(sm.sectorHitBoxes);
         for (size_t i = 0; i < n; i++) {
@@ -400,20 +403,22 @@ void add_starmap(std::vector<game::Hit>& out, StarMap& sm) {
         add_textbutton(out, sm.closeSectorButton, "close", 200);
         return;
     }
+    TS("locations");
     size_t n = vsize(sm.locations);
     for (size_t i = 0; i < n; i++) {
         Location* loc = sm.locations._start[i];
-        if (!loc) continue;
+        if (!sane_ptr(loc)) continue;
         // hit zone used by the game's own hover test: loc + position + [35..55] x [33..53]
         int x = (int)loc->loc.x + sm.position.x + 35, y = (int)loc->loc.y + sm.position.y + 33;
         bool reachable = false;
-        if (sm.currentLoc) {
+        if (sane_ptr(sm.currentLoc)) {
             size_t nc = vsize(sm.currentLoc->connectedLocations);
             for (size_t j = 0; j < nc; j++) if (sm.currentLoc->connectedLocations._start[j] == loc) reachable = true;
         }
         int extra = (loc == sm.currentLoc ? 1 : 0) | (reachable ? 2 : 0) | (loc->known ? 4 : 0) | (loc->visited ? 8 : 0) | (loc->beacon ? 16 : 0);
         add_rect(out, "location", (int)i, x, y, 20, 20, "", loc == sm.currentLoc || reachable || sm.bMapRevealed, extra);
     }
+    TS("buttons");
     add_textbutton(out, sm.jumpButton, "button", 1);
     add_textbutton(out, sm.waitButton, "button", 2);
     add_textbutton(out, sm.distressButton._base, "button", 3);

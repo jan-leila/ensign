@@ -3067,7 +3067,7 @@ struct StarMap
   FocusWindow _base;
   float visual_size;
   std__vector_10LocationZ1 locations;
-  std::map<Point, std::vector<Location*>> locations_grid;
+  char locations_grid[48];   // std::map (game ABI: libstdc++ 48 bytes); opaque so the layout does not depend on the host STL
   std__vector_10LocationZ1 temp_path;
   Location *currentLoc;
   Location *potentialLoc;
@@ -3248,7 +3248,7 @@ struct CrewDesc;
 
 struct CrewDesc
 {
-	std::string type;
+	std__string type;          // game ABI string (8 bytes)
 	float prop;
 	int amount;
 };
@@ -5484,7 +5484,7 @@ struct ShipRepairDrone
 {
     CombatDrone _base;
     CachedImage repairBeam;
-    std::vector<float> repairBeams;
+    char repairBeams[24];     // std::vector<float>, opaque
 };
 
 /* 162 */
@@ -6862,7 +6862,7 @@ struct ResourceBoxDesc
 
 struct LoadInfo
 {
-  std::string path;
+  std__string path;          // game ABI string (8 bytes)
   int resId;
   int	mark;
 };
@@ -6885,3 +6885,13 @@ struct Sound
   uint8_t stereo;
   int native_freq;
 };
+
+// Layout guards: these offsets were verified against the live game (see OFFSETS.txt
+// and the hover probes in tools/run-headless.sh). They must hold under every
+// compiler used to build the shim (gcc and zig/libc++).
+static_assert(offsetof(StarMap, jumpButton) == 1024, "StarMap layout drifted");
+static_assert(offsetof(StarMap, sectorHitBoxes) == 3248, "StarMap layout drifted");
+static_assert(offsetof(CommandGui, upgradeScreen) == 0x3608, "CommandGui layout drifted");
+static_assert(offsetof(CApp, x_bar) == 0x3964, "CApp layout drifted");
+static_assert(offsetof(SystemBox, hitBox) == 0x1ac, "SystemBox layout drifted");
+static_assert(sizeof(Upgrades) == 728, "Upgrades layout drifted (runtime tail delta expects +8)");

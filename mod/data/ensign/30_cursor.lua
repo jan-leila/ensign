@@ -64,6 +64,25 @@ function C.processQueue()
     E.injecting = false
 end
 
+-- Held buttons (hold-to-drag): the button goes down now and stays down until released.
+C.holding = nil
+function C.press(button)
+    if not E.native or C.holding then return end
+    C.holding = button
+    E.injecting = true
+    C.sync(true)
+    Ensign.mouseDown(button)
+    E.injecting = false
+end
+function C.release(button)
+    if not E.native or C.holding ~= button then return end
+    E.injecting = true
+    C.sync(true)
+    Ensign.mouseUp(button)
+    E.injecting = false
+    C.holding = nil
+end
+
 function C.key(k)
     if not E.native or not k then return end
     E.injecting = true

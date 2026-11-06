@@ -308,10 +308,18 @@ void add_ingame(std::vector<game::Hit>& out, CApp* a) {
     for (size_t i = 0; i < n; i++) {
         SystemBox* b = sc.sysBoxes._start[i];
         if (!b || !b->pSystem) continue;
+        // SystemControl renders translated by its position, so box geometry is relative to it
         const Globals__Rect& r = b->hitBox;
         int sys = b->pSystem->iSystemType;
-        if (r.w > 0 && r.h > 0) add_rect(out, "sysbox", sys, r.x, r.y, r.w, r.h, cstr(b->pSystem->name), true, (int)i);
-        else add_rect(out, "sysbox", sys, b->location.x + 10, b->location.y - 40, 36, 60, cstr(b->pSystem->name), true, (int)i);
+        int ox = sc.position.x, oy = sc.position.y;
+        // The game only reacts to the mouse in a 20x19 band over the system icon, just
+        // below the power bars (measured with tools/run-headless.sh hover probes), so
+        // report a 36x36 frame centred on that band.
+        if (r.w > 0 && r.h > 0) {
+            int cx = ox + r.x + 8, cy = oy + r.y + r.h + 1;
+            add_rect(out, "sysbox", sys, cx - 18, cy - 18, 36, 36, cstr(b->pSystem->name), true, (int)i);
+        }
+        else add_rect(out, "sysbox", sys, ox + b->location.x + 10, oy + b->location.y - 40, 36, 60, cstr(b->pSystem->name), true, (int)i);
     }
     T("crewboxes");
     const CrewControl& cc = gui->crewControl;
@@ -361,8 +369,10 @@ void add_ingame(std::vector<game::Hit>& out, CApp* a) {
         for (size_t i = 0; i < nd; i++) {
             Door* d = ship.vDoorList._start[i];
             if (!d) continue;
-            int w = d->width > 0 ? d->width : 10, h = d->height > 0 ? d->height : 10;
-            add_rect(out, "door", d->iDoorId, ox + d->x - w / 2, oy + d->y - h / 2, w, h, "", true, d->bOpen ? 1 : 0);
+            int w = d->width > 0 && d->width < 100 ? d->width : (d->bVertical ? 10 : 35);
+            int h = d->height > 0 && d->height < 100 ? d->height : (d->bVertical ? 35 : 10);
+            char rooms[32]; snprintf(rooms, sizeof rooms, "%d,%d", d->iRoom1, d->iRoom2);
+            add_rect(out, "door", d->iDoorId, ox + d->x - w / 2, oy + d->y - h / 2, w, h, rooms, true, d->bOpen ? 1 : 0);
         }
     }
     T("enemy");

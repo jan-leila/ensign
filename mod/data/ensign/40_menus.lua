@@ -10,6 +10,7 @@ M.hits = {}
 M.screen = "none"
 M.lastScreen = "none"
 M.hint = {}
+M.drag = nil
 
 local function kinds(...)
     local t = {}
@@ -41,6 +42,9 @@ local function currentTab(hits)
     for _, h in ipairs(hits) do if h.kind == "tab" and h.id < 10 then return h.extra end end
     return nil
 end
+
+-- kinds that are dragged with a held left button on these screens
+local DRAGGABLE = { equip = true, crewequip = true, storeitem = false }
 
 local function clickFocus(button, opts)
     if C.mode == "free" or not C.focus then
@@ -115,8 +119,13 @@ function M.update(screen)
         end
     end
 
+    if M.drag and I.released("select") then C.release(1); M.drag = nil end -- luacheck: ignore
     if I.pressed("select") or I.pressed("cursor_click") then
-        if screen == "rename" or screen == "input" then
+        if C.focus and DRAGGABLE[C.focus.kind] and I.pressed("select") then
+            C.snapTo(C.focus)
+            C.press(1)                 -- hold to drag, tap to click
+            M.drag = true
+        elseif screen == "rename" or screen == "input" then
             C.key(E.KEY.RETURN)
         elseif screen == "starmap" and C.focus and C.focus.kind == "location" and M.lastLocation and E.sameHit(C.focus, M.lastLocation) then
             -- second press on the same beacon: jump

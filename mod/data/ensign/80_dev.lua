@@ -43,8 +43,15 @@ local function gameState()
         s = s .. " crewMode=" .. tostring(E.game.roomCrewMode) .. " targeting=" .. tostring(E.game.targeting)
         s = s .. " aimPts=" .. tostring(gui.combatControl.aimingPoints:size()) .. " movingBeam=" .. tostring(gui.combatControl.movingBeam)
         if w then s = s .. " wTargets=" .. tostring(w.targets:size()) end
-        if ship and ship.weaponSystem then s = s .. " weaponsPower=" .. tostring(ship.weaponSystem.powerState.first) end
-        s = s .. " hoverW0=" .. tostring(Ensign.armamentHover(3, 0)) .. " hoverW1=" .. tostring(Ensign.armamentHover(3, 1)) .. " hoverSys3=" .. tostring(Ensign.sysboxHover(3))
+        if ship and ship.weaponSystem then
+            s = s .. " weaponsPower=" .. tostring(ship.weaponSystem.powerState.first)
+            local names = {}
+            for i = 0, ship.weaponSystem.weapons:size() - 1 do names[#names + 1] = ship.weaponSystem.weapons[i].blueprint.name end
+            s = s .. " weapons=" .. table.concat(names, ",")
+        end
+        if E.game.doorMode then for _, d in ipairs(E.game.doors) do s = s .. " door[" .. tostring(d.id) .. " " .. tostring(d.label) .. " " .. tostring(d.x) .. "," .. tostring(d.y) .. " open=" .. tostring(d.door and d.door.bOpen) .. "]" end end
+        s = s .. " doorMode=" .. tostring(E.game.doorMode) .. " drag=" .. tostring(E.game.drag) .. " hidden=" .. tostring(Hyperspace.Mouse.bHideMouse)
+        s = s .. " hoverW0=" .. tostring(Ensign.armamentHover(3, 0)) .. " hoverSys0=" .. tostring(Ensign.sysboxHover(0)) .. " hoverSys3=" .. tostring(Ensign.sysboxHover(3))
         local list = ship.vCrewList
         for i = 0, list:size() - 1 do
             local c = list[i]
@@ -93,6 +100,14 @@ function D.update()
         elseif (tonumber(a2) or 10) > 0 then idx = idx - 1; lines[idx] = string.format("wait_screen %s %d", a1, (tonumber(a2) or 10) - 1); waitUntil = E.time + 1
         else emit("FAIL wait_screen " .. a1 .. " (got " .. s .. ")") end
     elseif cmd == "panel" then E.game.setPanel(a1); emit("panel " .. a1)
+    elseif cmd == "hover" then
+        -- hover <sysId> <x> <y>: move the cursor there and report the system box hover flag
+        E.cursor.mode = "free"; E.cursor.focus = nil
+        E.cursor.moveTo(tonumber(a2) or 0, tonumber(rest:match("^%S+%s+%S+%s+(%S+)")) or 0)
+        idx = idx - 1; lines[idx] = "hover_read " .. rest; waitUntil = E.time + 0.05
+    elseif cmd == "hover_read" then
+        local x, y = tonumber(a2), tonumber(rest:match("^%S+%s+%S+%s+(%S+)"))
+        emit(string.format("hover sys%s at %d,%d = %s", a1, x, y, tostring(Ensign.sysboxHover(tonumber(a1)))))
     elseif cmd == "probe" then Ensign.devProbe(); emit("probe written to ensign.log")
     elseif cmd == "event" then
         -- force a game event (e.g. PIRATE for a hostile ship, STORE for a shop)

@@ -50,7 +50,8 @@ local function gameState()
             s = s .. " weapons=" .. table.concat(names, ",")
         end
         if E.game.doorMode then for _, d in ipairs(E.game.doors) do s = s .. " door[" .. tostring(d.id) .. " " .. tostring(d.label) .. " " .. tostring(d.x) .. "," .. tostring(d.y) .. " open=" .. tostring(d.door and d.door.bOpen) .. "]" end end
-        s = s .. " doorMode=" .. tostring(E.game.doorMode) .. " drag=" .. tostring(E.game.drag) .. " hidden=" .. tostring(Hyperspace.Mouse.bHideMouse)
+        local t = E.game.target
+        s = s .. " detail=" .. tostring(E.game.detail) .. " target=" .. (t and (t.kind .. "#" .. tostring(t.id) .. "@" .. tostring(t.roomId or t.roomSide)) or "nil") .. " carry=" .. tostring(E.menus.carry ~= nil)
         s = s .. " hoverW0=" .. tostring(Ensign.armamentHover(3, 0)) .. " hoverSys0=" .. tostring(Ensign.sysboxHover(0)) .. " hoverSys3=" .. tostring(Ensign.sysboxHover(3))
         local list = ship.vCrewList
         for i = 0, list:size() - 1 do
@@ -86,6 +87,9 @@ function D.update()
         local s = Ensign.screen()
         emit((s == a1 and "PASS" or "FAIL") .. " expect_screen " .. a1 .. " (got " .. s .. ")")
     elseif cmd == "press" then E.input.virtualPress(a1, tonumber(a2) or 2); emit("press " .. a1)
+    elseif cmd == "press_if" then
+        -- press_if <screen> <action>: press only while that screen is showing
+        if Ensign.screen() == a1 then E.input.virtualPress(a2, 2); emit("press_if " .. a1 .. " -> " .. a2) end
     elseif cmd == "nav" then E.input.virtualPress("nav_" .. a1, 2); emit("nav " .. a1)
     elseif cmd == "move" then E.cursor.mode = "free"; E.cursor.focus = nil; E.cursor.moveTo(tonumber(a1) or 0, tonumber(a2) or 0); emit("move " .. rest)
     elseif cmd == "click" then E.cursor.click(tonumber(a1) or 1); emit("click " .. (a1 or "1"))
@@ -108,6 +112,9 @@ function D.update()
     elseif cmd == "hover_read" then
         local x, y = tonumber(a2), tonumber(rest:match("^%S+%s+%S+%s+(%S+)"))
         emit(string.format("hover sys%s at %d,%d = %s", a1, x, y, tostring(Ensign.sysboxHover(tonumber(a1)))))
+    elseif cmd == "doors" then
+        for _, d in ipairs(E.game.allDoors()) do emit(string.format("door %s rooms %s centre %d,%d %s", tostring(d.id), d.label, d.x + d.w / 2, d.y + d.h / 2, d.door.bVertical and "V" or "H")) end
+        for _, h in ipairs(Ensign.hitboxes()) do if h.kind == "room" and h.extra == 0 then emit(string.format("room %d rect %d,%d %dx%d", h.id, h.x, h.y, h.w, h.h)) end end
     elseif cmd == "probe" then Ensign.devProbe(); emit("probe written to ensign.log")
     elseif cmd == "event" then
         -- force a game event (e.g. PIRATE for a hostile ship, STORE for a shop)

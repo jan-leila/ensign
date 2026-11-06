@@ -8,8 +8,9 @@ wait 3
 focus choice 0
 press select
 wait 1
-focus choice 0
-press select
+press_if event select
+wait 1
+press_if event select
 wait_screen game 6
 press pause
 wait 0.5

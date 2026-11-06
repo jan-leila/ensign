@@ -6,7 +6,7 @@ E.nav = N
 
 -- Pick the best candidate in a direction from the focused rect.
 -- Standard "beam" scoring: distance along the axis plus a penalty for off-axis offset.
-function N.pick(from, candidates, dir, filter)
+function N.pick(from, candidates, dir, filter, strict)
     if not from then return candidates[1] end
     local fx, fy = E.center(from)
     local best, bestScore = nil, math.huge
@@ -26,7 +26,7 @@ function N.pick(from, candidates, dir, filter)
             else
                 overlap = math.min(from.y + from.h, h.y + h.h) - math.max(from.y, h.y)
             end
-            if along > 1 then
+            if along > 1 and (not strict or across <= along * 1.1) then
                 local penalty = overlap > 0 and across * 0.6 or across * 2.2
                 local score = along + penalty
                 if score < bestScore then best, bestScore = h, score end

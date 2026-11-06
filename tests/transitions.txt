@@ -1,0 +1,86 @@
+wait 6
+focus button 0
+press select
+wait_screen shipbuilder 10
+focus button 1
+press select
+wait 3
+focus choice 0
+press select
+wait 1
+press_if event select
+wait 1
+press_if event select
+wait_screen game 6
+fakepad xbox
+press pause
+wait 0.4
+log --- ship: down past the bottom room -> weapons
+panel ship
+wait 0.3
+focus room 9
+wait 0.3
+nav down
+wait 0.4
+dump
+log --- weapons: up twice -> ship
+nav up
+wait 0.4
+nav up
+wait 0.4
+dump
+log --- weapons: left x4 -> power (systems), right x4 -> weapons, right x4 -> subsystems, left -> weapons
+panel weapons
+wait 0.3
+nav left
+wait 0.3
+nav left
+wait 0.3
+nav left
+wait 0.3
+nav left
+wait 0.3
+dump
+nav right
+wait 0.3
+nav right
+wait 0.3
+nav right
+wait 0.3
+nav right
+wait 0.3
+dump
+nav right
+wait 0.3
+nav right
+wait 0.3
+nav right
+wait 0.3
+nav right
+wait 0.3
+dump
+nav left
+wait 0.4
+dump
+log --- ship: left -> crew, right -> ship, up -> top, down -> ship
+panel ship
+wait 0.3
+focus room 16
+wait 0.3
+nav left
+wait 0.4
+dump
+nav right
+wait 0.4
+dump
+focus room 6
+wait 0.3
+nav up
+wait 0.4
+nav up
+wait 0.4
+dump
+nav down
+wait 0.4
+dump
+end

@@ -10,7 +10,7 @@ M.hits = {}
 M.screen = "none"
 M.lastScreen = "none"
 M.hint = {}
-M.drag = nil
+
 
 local function kinds(...)
     local t = {}
@@ -43,8 +43,25 @@ local function currentTab(hits)
     return nil
 end
 
--- kinds that are dragged with a held left button on these screens
-local DRAGGABLE = { equip = true, crewequip = true, storeitem = false }
+-- kinds that are picked up with A and dropped with A again (inventory / crew screens)
+local PICKABLE = { equip = true, crewequip = true }
+M.carry = nil
+
+-- equipment slots: hide the weapon/drone rows the game does not show, and skip empty
+-- slots unless something is being carried (then they are drop targets)
+local function equipVisible(h)
+    if h.kind ~= "equip" then return true end
+    local ok, hidden = pcall(function()
+        local ship = E.playerShip()
+        local ws, ds = ship.myBlueprint.weaponSlots, ship.myBlueprint.droneSlots
+        if h.id < ws and not ship:HasSystem(3) then return true end
+        if h.id >= ws and h.id < ws + ds and not ship:HasSystem(4) then return true end
+        return false
+    end)
+    if ok and hidden then return false end
+    if h.label == "empty" and not M.carry then return false end
+    return true
+end
 
 local function clickFocus(button, opts)
     if C.mode == "free" or not C.focus then
@@ -81,7 +98,10 @@ function M.update(screen)
     M.screen = screen
     M.hits = Ensign.hitboxes()
     local filter = navigable[screen]
-    local cands = filter and N.filterKind(M.hits, filter) or M.hits
+    local cands = {}
+    for _, h in ipairs(filter and N.filterKind(M.hits, filter) or M.hits) do
+        if equipVisible(h) and not (h.kind == "crewequip" and h.label == "empty" and not M.carry) then cands[#cands + 1] = h end
+    end
     if screen ~= M.lastScreen then
         -- new screen: focus the most sensible default
         C.focus = nil
@@ -119,12 +139,15 @@ function M.update(screen)
         end
     end
 
-    if M.drag and I.released("select") then C.release(1); M.drag = nil end -- luacheck: ignore
+    if M.carry and screen ~= M.carry.screen then C.release(1); M.carry = nil end
     if I.pressed("select") or I.pressed("cursor_click") then
-        if C.focus and DRAGGABLE[C.focus.kind] and I.pressed("select") then
+        if M.carry then
+            C.release(1)                -- drop where the frame is
+            M.carry = nil
+        elseif C.focus and PICKABLE[C.focus.kind] and I.pressed("select") then
             C.snapTo(C.focus)
-            C.press(1)                 -- hold to drag, tap to click
-            M.drag = true
+            C.press(1)                  -- pick up: the button stays held while the frame moves
+            M.carry = { origin = C.focus, screen = screen }
         elseif screen == "rename" or screen == "input" then
             C.key(E.KEY.RETURN)
         elseif screen == "starmap" and C.focus and C.focus.kind == "location" and M.lastLocation and E.sameHit(C.focus, M.lastLocation) then
@@ -138,7 +161,11 @@ function M.update(screen)
     end
     if I.pressed("alt") or I.pressed("cursor_rclick") then clickFocus(3) end
     if I.pressed("back") then
-        if screen == "confirm" then
+        if M.carry then
+            C.snapTo(M.carry.origin)   -- put it back
+            C.release(1)
+            M.carry = nil
+        elseif screen == "confirm" then
             local no = findHit("confirm_no")
             if no then C.snapTo(no); C.click(1) end
         elseif screen == "mainmenu" then -- luacheck: ignore 542
@@ -179,7 +206,11 @@ function M.update(screen)
     elseif screen == "starmap" then
         hint = { { "nav_up", "Beacon" }, { "select", "Jump there" }, { "pause", "Wait" }, { "back", "Close map" } }
     elseif screen == "store" or screen == "shipscreens" then
-        hint[#hint + 1] = { "panel_next", "Tab" }; hint[#hint + 1] = { "alt", "Alt" }; hint[#hint + 1] = { "back", "Close" }
+        if M.carry then hint = { { "nav_up", "Move" }, { "select", "Drop" }, { "back", "Put back" } }
+        else
+            if C.focus and PICKABLE[C.focus.kind] then hint[2] = { "select", "Pick up" } end
+            hint[#hint + 1] = { "panel_next", "Tab" }; hint[#hint + 1] = { "alt", "Alt" }; hint[#hint + 1] = { "back", "Close" }
+        end
     elseif screen == "options" or screen == "pausemenu" or screen == "scores" then
         hint[#hint + 1] = { "back", "Close" }
     elseif screen == "rename" or screen == "input" then

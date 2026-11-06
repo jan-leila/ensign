@@ -1,0 +1,102 @@
+wait 6
+focus button 0
+press select
+wait_screen shipbuilder 10
+focus button 1
+press select
+wait 3
+focus choice 0
+press select
+wait 1
+press_if event select
+wait 1
+press_if event select
+wait_screen game 6
+fakepad xbox
+press pause
+wait 0.4
+log --- detail mode: room 14 -> select unit -> right to door -> right into room 10 -> select unit
+panel ship
+wait 0.3
+focus room 14
+wait 0.3
+press select
+wait 0.4
+dump
+press select
+wait 0.4
+dump
+nav right
+wait 0.4
+dump
+nav right
+wait 0.4
+dump
+press select
+wait 0.4
+dump
+shot detail_two_selected
+log --- back to rooms and send both to room 6
+press back
+wait 0.4
+dump
+focus room 6
+wait 0.3
+press select
+wait 0.4
+press pause
+wait 6
+dump
+log --- edge transitions: down past the ship -> weapons; up -> ship; left -> power; right -> weapons
+press pause
+wait 0.3
+panel ship
+wait 0.3
+focus room 9
+wait 0.3
+nav down
+wait 0.4
+dump
+nav up
+wait 0.4
+dump
+panel weapons
+wait 0.3
+nav left
+wait 0.4
+nav left
+wait 0.4
+nav left
+wait 0.4
+dump
+nav right
+wait 0.4
+nav right
+wait 0.4
+nav right
+wait 0.4
+dump
+log --- equipment screen pickup/drop: swap weapon slots
+panel top
+wait 0.3
+focus topbar 0
+wait 0.3
+press select
+wait 1
+press panel_next
+wait 0.6
+press panel_next
+wait 0.6
+dump
+press select
+wait 0.4
+dump
+nav right
+wait 0.4
+press select
+wait 0.6
+dump
+press back
+wait 1
+dump
+end

@@ -120,7 +120,8 @@ void add_equipment_boxes(std::vector<game::Hit>& out, const std__vector_14Equipm
         EquipmentBox* b = v._start[i];
         if (!b) continue;
         const Globals__Rect& r = b->hitBox;
-        add_rect(out, kind, (int)i, r.x, r.y, r.w, r.h, "", !b->bBlocked, b->slot);
+        bool empty = !b->item.pWeapon && !b->item.pDrone && !b->item.pCrew && !b->item.augment;
+        add_rect(out, kind, (int)i, r.x, r.y, r.w, r.h, empty ? "empty" : "item", !b->bBlocked, b->slot);
     }
 }
 void add_options(std::vector<game::Hit>& out, const OptionsScreen& o) {
@@ -235,7 +236,7 @@ void add_ship_screens(std::vector<game::Hit>& out, CommandGui* gui) {
             CrewEquipBox* b = cm.crewBoxes._start[i];
             if (!b) continue;
             const Globals__Rect& r = b->_base.hitBox;
-            add_rect(out, "crewequip", (int)i, r.x, r.y, r.w, r.h, "", true, 0);
+            add_rect(out, "crewequip", (int)i, r.x, r.y, r.w, r.h, b->_base.item.pCrew ? "item" : "empty", true, 0);
             if (b->bShowDelete) add_textbutton(out, b->deleteButton, "button", 300 + (int)i);
             if (b->bShowRename) add_textbutton(out, b->renameButton, "button", 400 + (int)i);
         }
@@ -275,7 +276,7 @@ void add_shipbuilder(std::vector<game::Hit>& out, ShipBuilder& sb) {
         CrewCustomizeBox* b = sb.vCrewBoxes._start[i];
         if (!b) continue;
         const Globals__Rect& r = b->_base._base.hitBox;
-        add_rect(out, "crewequip", (int)i, r.x, r.y, r.w, r.h);
+        add_rect(out, "crewequip", (int)i, r.x, r.y, r.w, r.h, b->_base._base.item.pCrew ? "item" : "empty");
         if (b->bCustomizing) {
             add_textbutton(out, b->acceptButton, "button", 500 + (int)i);
             add_textbutton(out, b->bigRenameButton, "button", 520 + (int)i);

@@ -29,8 +29,24 @@ static std::map<std::string, InputDigitalActionHandle_t> g_digHandles;
 static std::map<std::string, InputAnalogActionHandle_t> g_anaHandles;
 static std::map<std::string, DigitalState> g_dig;
 static std::map<std::string, AnalogState> g_ana;
-static std::string g_currentSet;
+static std::string g_currentSet;            // requested set name (kept even while its handle is unknown)
 static InputActionSetHandle_t g_currentSetHandle = 0;
+static bool g_handlesPending = false;
+static double g_nextHandleRetry = 0;
+
+// Steam parses the manifest asynchronously: handles can be 0 for a while after
+// Init. Resolve what is missing and report whether anything is still pending.
+static bool resolve_handles() {
+    int missing = 0;
+    for (auto& s : g_cfg.sets) { if (!g_setHandles[s]) g_setHandles[s] = g_in->GetActionSetHandle(s.c_str()); if (!g_setHandles[s]) missing++; }
+    for (auto& d : g_cfg.digital) { if (!g_digHandles[d]) g_digHandles[d] = g_in->GetDigitalActionHandle(d.c_str()); if (!g_digHandles[d]) missing++; }
+    for (auto& a : g_cfg.analog) { if (!g_anaHandles[a]) g_anaHandles[a] = g_in->GetAnalogActionHandle(a.c_str()); if (!g_anaHandles[a]) missing++; }
+    if (!g_currentSet.empty() && !g_currentSetHandle && g_setHandles[g_currentSet]) {
+        g_currentSetHandle = g_setHandles[g_currentSet];
+        if (g_handle) g_in->ActivateActionSet(g_handle, g_currentSetHandle);
+    }
+    return missing == 0;
+}
 
 // rumble
 static float g_rumbleL = 0, g_rumbleR = 0;
@@ -86,14 +102,10 @@ bool try_init() {
     g_in->Init(true);
     g_initCalled = true;
     g_in->RunFrame(true);
-    for (auto& s : g_cfg.sets) g_setHandles[s] = g_in->GetActionSetHandle(s.c_str());
-    for (auto& d : g_cfg.digital) g_digHandles[d] = g_in->GetDigitalActionHandle(d.c_str());
-    for (auto& a : g_cfg.analog) g_anaHandles[a] = g_in->GetAnalogActionHandle(a.c_str());
-    int unresolved = 0;
-    for (auto& kv : g_setHandles) if (!kv.second) { ensign::logf("action set '%s' has no handle", kv.first.c_str()); unresolved++; }
-    for (auto& kv : g_digHandles) if (!kv.second) unresolved++;
-    for (auto& kv : g_anaHandles) if (!kv.second) unresolved++;
-    g_status = unresolved ? "initialized (some actions unresolved; manifest missing?)" : "ok";
+    bool complete = resolve_handles();
+    g_handlesPending = !complete;
+    g_nextHandleRetry = ensign::now_seconds() + 0.5;
+    g_status = complete ? "ok" : "waiting for Steam to load the action manifest";
     ensign::logf("Steam Input initialized: %s (%zu sets, %zu digital, %zu analog)", g_status.c_str(),
                  g_setHandles.size(), g_digHandles.size(), g_anaHandles.size());
     return true;
@@ -122,6 +134,14 @@ static void pick_controller() {
 void poll() {
     if (!ready()) { try_init(); if (!ready()) return; }
     g_in->RunFrame(true);
+    if (g_handlesPending && ensign::now_seconds() >= g_nextHandleRetry) {
+        g_nextHandleRetry = ensign::now_seconds() + 0.5;
+        if (resolve_handles()) {
+            g_handlesPending = false;
+            g_status = "ok";
+            ensign::logf("action manifest handles resolved (set %s)", g_currentSet.c_str());
+        }
+    }
     pick_controller();
     if (!g_handle) return;
     if (g_currentSetHandle) g_in->ActivateActionSet(g_handle, g_currentSetHandle); // cheap, keeps the set sticky
@@ -195,11 +215,11 @@ const char* controller_family() {
 }
 
 bool set_action_set(const std::string& name) {
-    if (name == g_currentSet) return true;
+    if (name == g_currentSet) return g_currentSetHandle != 0;
+    g_currentSet = name;                       // remembered even if the handle is not known yet
     auto it = g_setHandles.find(name);
-    if (it == g_setHandles.end() || !it->second) return false;
-    g_currentSet = name;
-    g_currentSetHandle = it->second;
+    g_currentSetHandle = (it == g_setHandles.end()) ? 0 : it->second;
+    if (!g_currentSetHandle) return false;
     if (ready() && g_handle) g_in->ActivateActionSet(g_handle, g_currentSetHandle);
     return true;
 }

@@ -19,7 +19,7 @@ press jump
 wait_screen starmap 10
 dump
 shot starmap
-focus location 2
+focus location reachable
 wait 0.4
 dump
 shot starmap_selected

@@ -96,8 +96,10 @@ function D.update()
     elseif cmd == "click" then E.cursor.click(tonumber(a1) or 1); emit("click " .. (a1 or "1"))
     elseif cmd == "key" then E.cursor.key(tonumber(a1)); emit("key " .. a1)
     elseif cmd == "focus" then
+        -- focus <kind> [id|reachable]: reachable = a star map beacon connected to the current one
         for _, h in ipairs(Ensign.hitboxes()) do
-            if h.kind == a1 and (a2 == "" or h.id == tonumber(a2)) then E.cursor.mode = "snap"; E.cursor.snapTo(h); emit("focus " .. rest); break end
+            local ok = h.kind == a1 and (a2 == "" or h.id == tonumber(a2) or (a2 == "reachable" and h.kind == "location" and h.extra % 4 >= 2 and h.extra % 2 == 0))
+            if ok then E.cursor.mode = "snap"; E.cursor.snapTo(h); emit("focus " .. rest .. " -> " .. h.kind .. "#" .. h.id); break end
         end
     elseif cmd == "wait_screen" then
         local s = Ensign.screen()

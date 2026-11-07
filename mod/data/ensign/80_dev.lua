@@ -44,7 +44,17 @@ local function gameState()
         pcall(function() s = s .. " enginesPower=" .. tostring(ship:GetSystem(1).powerState.first) end)
         s = s .. " crewMode=" .. tostring(E.game.roomCrewMode) .. " targeting=" .. tostring(E.game.targeting)
         s = s .. " aimPts=" .. tostring(gui.combatControl.aimingPoints:size()) .. " movingBeam=" .. tostring(gui.combatControl.movingBeam)
-        pcall(function() s = s .. " selRoom=" .. tostring(gui.combatControl.selectedRoom) .. "/" .. tostring(gui.combatControl.selectedSelfRoom) .. " selPlayer=" .. tostring(gui.combatControl.selectedPlayerShip) end)
+        pcall(function() s = s .. " selRoom=" .. tostring(gui.combatControl.selectedRoom) .. "/" .. tostring(gui.combatControl.selectedSelfRoom) end)
+        pcall(function() local t, h, m = Ensign.specialArmed(); s = s .. " armedTele=" .. tostring(t) .. " armedHack=" .. tostring(h) .. " armedMind=" .. tostring(m) end)
+        pcall(function() s = s .. " teleCmd=" .. tostring(gui.combatControl.teleportCommand.first) .. "," .. tostring(gui.combatControl.teleportCommand.second) end)
+        pcall(function() local hs = ship.hackingSystem; s = s .. " hack[armed=" .. tostring(hs.bArmed) .. " hacking=" .. tostring(hs.bHacking) .. " cur=" .. tostring(hs.currentSystem ~= nil) .. " queued=" .. tostring(hs.queuedSystem ~= nil) .. " blocked=" .. tostring(hs.bBlocked) .. " canHack=" .. tostring(hs.bCanHack) .. " drones=" .. tostring(hs.spendDrone) .. "]" end)
+        pcall(function() local ms = ship.mindSystem; s = s .. " mind[armed=" .. tostring(ms.iArmed) .. " queued=" .. tostring(ms.queuedCrew:size()) .. " controlled=" .. tostring(ms.controlledCrew:size()) .. "]" end)
+        pcall(function() s = s .. " cloak=" .. tostring(ship.cloakSystem.bTurnedOn) end)
+        pcall(function() local ts = ship.teleportSystem; s = s .. " tele[canSend=" .. tostring(ts.bCanSend) .. " canReceive=" .. tostring(ts.bCanReceive) .. " charge=" .. tostring(ts.chargeLevel) .. " armed=" .. tostring(ts.iArmed) .. "]" end)
+        pcall(function()
+            local list = Hyperspace.ships.enemy.vCrewList
+            for i = 0, list:size() - 1 do local c = list[i]; if c and c.iShipId == 0 then s = s .. string.format(" boarder[%s room=%d]", c:GetName(), c.iRoomId) end end
+        end)
         if w then s = s .. " wTargets=" .. tostring(w.targets:size()) end
         if ship and ship.weaponSystem then
             s = s .. " weaponsPower=" .. tostring(ship.weaponSystem.powerState.first)
@@ -63,7 +73,7 @@ local function gameState()
         for i = 0, list:size() - 1 do
             local c = list[i]
             local okc, err = pcall(function()
-                if c and c.iShipId == 0 then s = s .. string.format(" crew%d[%s room=%d pos=%d,%d sel=%d]", i, c:GetName(), c.iRoomId, c.x, c.y, c.selectionState) end
+                if c and c.iShipId == 0 then s = s .. string.format(" crew%d[%s room=%d ship=%d pos=%d,%d sel=%d]", i, c:GetName(), c.iRoomId, c.currentShipId, c.x, c.y, c.selectionState) end
             end)
             if not okc then s = s .. string.format(" crew%d[ERROR %s]", i, tostring(err)) end
         end
@@ -105,6 +115,9 @@ function D.update()
         local fx, fy = rest:match("^%S+%s+(%S+)%s+(%S+)")
         if fx then E.hud.SUBSYSTEM_FRAME_DX, E.hud.SUBSYSTEM_FRAME_DY = tonumber(fx), tonumber(fy) end
         emit("sublift " .. rest)
+    elseif cmd == "crewto" then   -- crewto <crewIdx> <sysId>: send a crew member into that system's room
+        local ok, r = pcall(function() return E.playerShip():GetSystem(tonumber(a2)).roomId end)
+        emit("crewto " .. rest .. " -> room " .. tostring(r) .. " " .. tostring(ok and Ensign.moveCrew(tonumber(a1), r)))
     elseif cmd == "logic" then   -- logic <Ensign function> [args...]: direct game-logic call (numbers, true/false)
         local args = {}
         for tok in (rest:match("^%S+%s*(.*)$") or ""):gmatch("%S+") do
@@ -129,12 +142,36 @@ function D.update()
     elseif cmd == "move" then E.cursor.mode = "free"; E.cursor.focus = nil; E.cursor.moveTo(tonumber(a1) or 0, tonumber(a2) or 0); emit("move " .. rest)
     elseif cmd == "click" then E.cursor.click(tonumber(a1) or 1); emit("click " .. (a1 or "1"))
     elseif cmd == "key" then E.cursor.key(tonumber(a1)); emit("key " .. a1)
+    elseif cmd == "focus" and a1 == "room" and a2 == "boarders" then   -- enemy room holding our first crew member over there
+        local picked, want
+        pcall(function()
+            local list = Hyperspace.ships.enemy.vCrewList
+            for i = 0, list:size() - 1 do local c = list[i]; if c and c.iShipId == 0 and not want then want = c.iRoomId end end
+        end)
+        for _, h in ipairs(Ensign.hitboxes()) do if h.kind == "room" and h.extra == 1 and h.id == want then picked = h end end
+        if picked then E.cursor.mode = "snap"; E.cursor.snapTo(picked) end
+        emit("focus room boarders -> " .. (picked and ("room#" .. picked.id) or "none"))
+    elseif cmd == "focus" and a1 == "room" and a2 == "sys" then   -- first enemy room that holds a system
+        local picked
+        for _, h in ipairs(Ensign.hitboxes()) do
+            if not picked and h.kind == "room" and h.extra == 1 then
+                local ok, sys = pcall(function() return Hyperspace.ships.enemy:GetSystemInRoom(h.id) end)
+                if ok and sys then picked = h end
+            end
+        end
+        if picked then E.cursor.mode = "snap"; E.cursor.snapTo(picked) end
+        emit("focus room sys -> " .. (picked and ("room#" .. picked.id) or "none"))
     elseif cmd == "focus" then
         -- focus <kind> [id|reachable]: reachable = a star map beacon connected to the current one
         for _, h in ipairs(Ensign.hitboxes()) do
             local ok = h.kind == a1 and (a2 == "" or h.id == tonumber(a2) or (a2 == "reachable" and h.kind == "location" and h.extra % 4 >= 2 and h.extra % 2 == 0))
             if ok then E.cursor.mode = "snap"; E.cursor.snapTo(h); emit("focus " .. rest .. " -> " .. h.kind .. "#" .. h.id); break end
         end
+    elseif cmd == "wait_tele" then   -- wait_tele <minCharge> <seconds>: poll (once a second) until the teleporter charge reaches minCharge
+        local ok, charge = pcall(function() return E.playerShip().teleportSystem.chargeLevel end)
+        if ok and charge and charge >= (tonumber(a1) or 100) then emit("PASS wait_tele charge=" .. tostring(charge))
+        elseif (tonumber(a2) or 60) > 0 then idx = idx - 1; lines[idx] = string.format("wait_tele %s %d", a1, (tonumber(a2) or 60) - 1); waitUntil = E.time + 1
+        else emit("FAIL wait_tele (charge " .. tostring(charge) .. ")") end
     elseif cmd == "wait_screen" then
         local s = Ensign.screen()
         if s == a1 then emit("PASS wait_screen " .. a1)

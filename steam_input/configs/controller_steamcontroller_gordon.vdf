@@ -51,6 +51,7 @@
 				"system_power_up"		"#Action_system_power_up"
 				"system_power_down"		"#Action_system_power_down"
 				"system_off"		"#Action_system_off"
+				"system_use"		"#Action_system_use"
 				"slot_toggle"		"#Action_slot_toggle"
 				"slot_off"		"#Action_slot_off"
 				"slot_retarget"		"#Action_slot_retarget"
@@ -170,6 +171,7 @@
 						{
 							"binding"		"game_action InGame room_detail, Room: show details"
 							"binding"		"game_action InGame system_off, System: turn off"
+							"binding"		"game_action InGame system_use, System: cloak / battery / hack / mind control / teleport"
 							"binding"		"game_action InGame slot_retarget, Weapon: power and aim"
 							"binding"		"game_action InGame crew_reorder, Crew: reorder"
 						}

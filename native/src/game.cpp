@@ -621,11 +621,15 @@ void lift_subsystems(int dy, int frameDx, int frameDy) {
     SystemControl& sc = a->gui->sysControl;
     if (g_subFrameBaseY == INT_MIN) { g_subFrameBaseX = sc.subSystemPosition.x; g_subFrameBaseY = sc.subSystemPosition.y; }
     sc.subSystemPosition.y = g_subFrameBaseY - dy;
-    if (sc.sub_box != g_ourSubBox && sc.sub_box != g_origSubBox) { g_origSubBox = sc.sub_box; g_subLiftApplied = INT_MIN; }  // the game rebuilt it
+    if (sc.sub_box != g_ourSubBox && sc.sub_box != g_origSubBox) {
+        // the game rebuilt its frame (a system was added or removed): whatever primitive
+        // was installed, ours included, has been destroyed by the game, so forget it
+        g_origSubBox = sc.sub_box; g_ourSubBox = nullptr; g_subLiftApplied = INT_MIN;
+    }
     if (dy != g_subLiftApplied || frameDx != g_subFrameDxApplied || frameDy != g_subFrameDyApplied) {
         static CreateImagePrimitiveFn create = (CreateImagePrimitiveFn)dlsym(RTLD_DEFAULT, "_ZN8CSurface23GL_CreateImagePrimitiveEP10GL_Texturefffff8GL_Color");
         static DestroyPrimitiveFn destroy = (DestroyPrimitiveFn)dlsym(RTLD_DEFAULT, "_ZN8CSurface19GL_DestroyPrimitiveEP12GL_Primitive");
-        GL_Primitive* old = g_ourSubBox;
+        GL_Primitive* old = (sc.sub_box == g_ourSubBox) ? g_ourSubBox : nullptr;   // only destroy what is still installed
         g_ourSubBox = nullptr;
         if (dy == 0) {
             if (g_origSubBox) sc.sub_box = g_origSubBox;

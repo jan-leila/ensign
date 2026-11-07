@@ -16,6 +16,7 @@
 --      system box: power +      slot: power on, then aim      crew portrait: select (adds)
 --   B  detail: back to rooms    rooms: deselect all    system box: power -    slot: cancel aim, then power off
 --   X  room: open detail (even with units selected)   system box: turn off   slot: power + aim in one go
+--      cloak / battery: fire   hacking / mind control: arm (A on the room targets)   teleporter: send, again: return
 --   Y  FTL jump    Start: ship screens    View: inventory    d-pad: move, crossing group edges
 -- With the cursor pointed freely (touchpad / right stick) A over a room still sends the
 -- selected units there, or opens that room's detail mode when nothing is selected.
@@ -114,6 +115,10 @@ local function detectTargeting()
         if ok2 and tn == "BOMB" then return "bomb" end
         return "weapon"
     end
+    local tele, hack, mind = Ensign.specialArmed()
+    if tele and tele ~= 0 then return "teleport" end
+    if hack then return "hack" end
+    if mind and mind ~= 0 then return "mind" end
     local okm, m = pcall(function() return Hyperspace.Mouse end)
     if okm and m then
         if m.iTeleporting and m.iTeleporting ~= 0 then return "teleport" end
@@ -121,6 +126,32 @@ local function detectTargeting()
         if m.iMindControlling and m.iMindControlling ~= 0 then return "mind" end
     end
     return nil
+end
+
+-- special systems: cloak / battery fire at once; hacking, mind control and the
+-- teleporter arm and then take a room (teleporter: send, press again for return)
+local SPECIAL = { [9] = "teleporter", [10] = "cloaking", [12] = "battery", [14] = "mind", [15] = "hacking" }
+-- off -> send -> return -> off, skipping what the game refuses (nobody in the teleporter
+-- room, nobody to bring back, not enough charge)
+local function cycleTeleporter(cur)
+    if cur == 0 then return Ensign.armTeleporter(1) or Ensign.armTeleporter(2)
+    elseif cur == 1 then return Ensign.armTeleporter(2) or Ensign.armTeleporter(0)
+    else return Ensign.armTeleporter(0) end
+end
+local function useSystem(sysId)
+    local tele, hack, mind = Ensign.specialArmed()
+    if sysId == 10 then return Ensign.cloak()
+    elseif sysId == 12 then return Ensign.battery()
+    elseif sysId == 15 then return Ensign.armHacking(not hack)
+    elseif sysId == 14 then return Ensign.armMind(not (mind and mind ~= 0))
+    elseif sysId == 9 then return cycleTeleporter(tele or 0) end
+    return false
+end
+local function cancelSpecial(mode)
+    if mode == "teleport" then return Ensign.armTeleporter(0)
+    elseif mode == "hack" then return Ensign.armHacking(false)
+    elseif mode == "mind" then return Ensign.armMind(false) end
+    return false
 end
 
 -- ---- crew selection (managed through the game's own selection list) ---------
@@ -630,9 +661,19 @@ function G.update()
             E.feedback.pulse("select")
         end
         if I.pressed("target_cancel") then if not Ensign.armWeapon(-1) then C.click(3) end end
-    elseif G.targeting then   -- hacking / mind control / teleport: the game's own click handlers
-        if I.pressed("target_confirm") then C.click(1) end
-        if I.pressed("target_cancel") then C.click(3) end
+    elseif G.targeting then   -- hacking / mind control / teleport: the combat controller's own handler
+        local room = (focus and focus.kind == "room") and focus or roomUnder
+        if I.pressed("target_confirm") and room then
+            local done
+            if G.targeting == "hack" and room.extra == 1 then done = Ensign.hackRoom(room.id)
+            else done = Ensign.combatClick(E.center(room)) end
+            if not done and G.targeting ~= "hack" then C.snapTo(room); C.click(1) end
+            E.feedback.pulse("select")
+        end
+        if I.pressed("target_cancel") then if not cancelSpecial(G.targeting) then C.click(3) end end
+        if I.pressed("system_use") and G.targeting == "teleport" then   -- X again: send -> return -> off
+            cycleTeleporter(Ensign.specialArmed() or 0)
+        end
     elseif onShip and focus and focus.kind == "room" then
         if selectedCrewCount() > 0 then
             if I.pressed("room_send") then sendSelected(focus); E.feedback.pulse("select") end
@@ -649,7 +690,10 @@ function G.update()
     elseif sysFocus then
         if I.pressed("system_power_up") then if not Ensign.sysPower(focus.id, 1) then E.feedback.pulse("select") end end
         if I.pressed("system_power_down") then Ensign.sysPower(focus.id, -1) end
-        if I.pressed("system_off") then G.drain = { id = focus.id, n = systemPower(focus.id) } end   -- one bar per frame
+        if I.pressed("system_off") and not SPECIAL[focus.id] then G.drain = { id = focus.id, n = systemPower(focus.id) } end   -- one bar per frame
+        if I.pressed("system_use") and SPECIAL[focus.id] then
+            if useSystem(focus.id) then E.feedback.pulse("select") end
+        end
     elseif slotFocus then
         if I.pressed("slot_toggle") then G.slotHold = { hit = focus, at = E.time, powered = slotPowered(focus), started = false } end
         if I.pressed("slot_off") then slotPowerSet(focus, false) end
@@ -701,10 +745,18 @@ function G.update()
     elseif G.targeting == "beam" then
         hint[#hint + 1] = { "beam_point", G.beamStage == 0 and "Beam start" or "Beam end" }
         hint[#hint + 1] = { "target_cancel", "Cancel aim" }
+    elseif G.targeting == "hack" then
+        hint[#hint + 1] = { "target_confirm", "Hack this system" }; hint[#hint + 1] = { "target_cancel", "Cancel" }
+    elseif G.targeting == "mind" then
+        hint[#hint + 1] = { "target_confirm", "Control crew here" }; hint[#hint + 1] = { "target_cancel", "Cancel" }
+    elseif G.targeting == "teleport" then
+        local tele = Ensign.specialArmed()
+        hint[#hint + 1] = { "target_confirm", tele == 2 and "Return crew from here" or "Beam crew here" }
+        hint[#hint + 1] = { "target_cancel", "Cancel" }; hint[#hint + 1] = { "group_enemy", "Other ship" }
     elseif G.targeting then
         hint[#hint + 1] = { "target_confirm", "Aim at room" }
         hint[#hint + 1] = { "target_cancel", "Cancel aim" }
-        if G.targeting == "bomb" or G.targeting == "teleport" then hint[#hint + 1] = { "group_enemy", "Other ship" } end
+        if G.targeting == "bomb" then hint[#hint + 1] = { "group_enemy", "Other ship" } end
     elseif (G.panel == "ship" or G.panel == "enemy") or roomUnder then
         if nsel > 0 then
             hint[#hint + 1] = { "room_send", "Send " .. nsel .. " here" }; hint[#hint + 1] = { "room_detail", "Pick more units" }; hint[#hint + 1] = { "room_deselect_all", "Deselect all" }
@@ -712,7 +764,14 @@ function G.update()
             hint[#hint + 1] = { "room_open", "Units & doors" }
         end
     elseif sysFocus then
-        hint[#hint + 1] = { "system_power_up", "Power +" }; hint[#hint + 1] = { "system_power_down", "Power -" }; hint[#hint + 1] = { "system_off", "Unpower" }
+        hint[#hint + 1] = { "system_power_up", "Power +" }; hint[#hint + 1] = { "system_power_down", "Power -" }
+        local kind = SPECIAL[focus.id]
+        if kind == "cloaking" then hint[#hint + 1] = { "system_use", "Cloak" }
+        elseif kind == "battery" then hint[#hint + 1] = { "system_use", "Backup battery" }
+        elseif kind == "hacking" then hint[#hint + 1] = { "system_use", "Hack" }
+        elseif kind == "mind" then hint[#hint + 1] = { "system_use", "Mind control" }
+        elseif kind == "teleporter" then hint[#hint + 1] = { "system_use", "Teleport (again: return)" }
+        else hint[#hint + 1] = { "system_off", "Unpower" } end
     elseif slotFocus then
         local aLabel = "Power on (hold to move)"
         if slotFocusPowered then aLabel = (focus.extra == 3) and "Aim (hold to move)" or "Power off (hold to move)" end

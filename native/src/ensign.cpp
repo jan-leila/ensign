@@ -226,6 +226,19 @@ int l_moveCrew(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::move_cre
 int l_door(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::door(lua_toboolean(L, 1), (int)luaL_checkinteger(L, 2), lua_toboolean(L, 3))); return 1; }
 int l_setPaused(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::set_paused(lua_toboolean(L, 1))); return 1; }
 int l_paused(lua_State* L) { lua_pushboolean(L, logic::paused()); return 1; }
+int l_specialArmed(lua_State* L) { logic_ready(); int t = 0, m = 0; bool h = false; logic::special_armed(t, h, m); lua_pushinteger(L, t); lua_pushboolean(L, h); lua_pushinteger(L, m); return 3; }
+int l_armTeleporter(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::arm_teleporter((int)luaL_checkinteger(L, 1))); return 1; }
+int l_armTeleporterRaw(lua_State* L) {   // dev: call CombatControl::ArmTeleporter with any value and report TeleporterArmed()
+    logic_ready();
+    if (!getenv("ENSIGN_DEV")) { lua_pushnil(L); return 1; }
+    lua_pushinteger(L, logic::arm_teleporter_raw((int)luaL_checkinteger(L, 1))); return 1;
+}
+int l_armHacking(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::arm_hacking(lua_toboolean(L, 1))); return 1; }
+int l_armMind(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::arm_mind(lua_toboolean(L, 1))); return 1; }
+int l_combatClick(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::combat_click((int)luaL_checknumber(L, 1), (int)luaL_checknumber(L, 2))); return 1; }
+int l_hackRoom(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::hack_room((int)luaL_checkinteger(L, 1))); return 1; }
+int l_cloak(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::cloak_on()); return 1; }
+int l_battery(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::battery_on()); return 1; }
 int l_mapClick(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::map_click((int)luaL_checknumber(L, 1), (int)luaL_checknumber(L, 2))); return 1; }
 int l_mapClose(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::map_close()); return 1; }
 int l_choiceClick(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::choice_click((int)luaL_checknumber(L, 1), (int)luaL_checknumber(L, 2))); return 1; }
@@ -257,6 +270,8 @@ const luaL_Reg kFuncs[] = {
     {"logicStatus", l_logicStatus}, {"sysPower", l_sysPower}, {"weaponPower", l_weaponPower}, {"dronePower", l_dronePower},
     {"armWeapon", l_armWeapon}, {"roomCenter", l_roomCenter}, {"fireAt", l_fireAt}, {"swapWeapons", l_swapWeapons}, {"swapDrones", l_swapDrones},
     {"moveCrew", l_moveCrew}, {"door", l_door}, {"setPaused", l_setPaused}, {"paused", l_paused},
+    {"specialArmed", l_specialArmed}, {"armTeleporter", l_armTeleporter}, {"armTeleporterRaw", l_armTeleporterRaw}, {"armHacking", l_armHacking}, {"armMind", l_armMind},
+    {"combatClick", l_combatClick}, {"hackRoom", l_hackRoom}, {"cloak", l_cloak}, {"battery", l_battery},
     {"mapClick", l_mapClick}, {"mapClose", l_mapClose}, {"choiceClick", l_choiceClick}, {"storeClick", l_storeClick},
     {"equipClick", l_equipClick}, {"equipUp", l_equipUp}, {"tabSet", l_tabSet},
     {"devReadFile", l_devReadFile}, {"devWriteFile", l_devWriteFile}, {"devEnabled", l_devEnabled}, {"devEnv", l_devEnv}, {"devProbe", l_devProbe},

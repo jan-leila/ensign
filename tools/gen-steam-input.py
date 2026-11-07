@@ -78,6 +78,7 @@ BUTTONS = [
     (IG, "system_power_up", "System: add power", {"*": ["A", "RT"]}),
     (IG, "system_power_down", "System: remove power", {"*": ["B", "LT"]}),
     (IG, "system_off", "System: turn off", {"*": ["X"]}),
+    (IG, "system_use", "System: cloak / battery / hack / mind control / teleport", {"*": ["X"]}),
     (IG, "slot_toggle", "Weapon / drone: power on then aim (hold: move)", {"*": ["A"]}),
     (IG, "slot_off", "Weapon / drone: power off", {"*": ["B"]}),
     (IG, "slot_retarget", "Weapon: power and aim", {"*": ["X"]}),

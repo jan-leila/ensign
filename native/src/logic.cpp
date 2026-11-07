@@ -240,6 +240,118 @@ bool set_paused(bool p) {
 }
 bool paused() { CommandGui* g = gui(); return g && g->bPaused; }
 
+void special_armed(int& teleport, bool& hacking, int& mind) {
+    teleport = 0; hacking = false; mind = 0;
+    CommandGui* g = gui();
+    if (!g) return;
+    using TeleFn = int (*)(CombatControl*); using HackFn = bool (*)(CombatControl*); using MindFn = int (*)(CombatControl*);
+    static TeleFn tele = sym<TeleFn>("_ZN13CombatControl15TeleporterArmedEv");
+    static HackFn hack = sym<HackFn>("_ZN13CombatControl12HackingArmedEv");
+    static MindFn mindf = sym<MindFn>("_ZN13CombatControl16MindControlArmedEv");
+    if (tele) teleport = tele(&g->combatControl);
+    if (hack) hacking = hack(&g->combatControl);
+    if (mindf) mind = mindf(&g->combatControl);
+}
+static bool has_system(int id) {
+    ShipManager* sm = player();
+    if (!sm) return false;
+    using GetSysFn = ShipSystem* (*)(ShipManager*, int);
+    static GetSysFn getSys = sym<GetSysFn>("_ZN11ShipManager9GetSystemEi");
+    return getSys && sane(getSys(sm, id));
+}
+bool arm_teleporter(int mode) {
+    CommandGui* g = gui();
+    if (!g || !has_system(9)) return false;
+    if (mode <= 0) { SYM(dis, void (*)(CombatControl*), "_ZN13CombatControl16DisarmTeleporterEv"); dis(&g->combatControl); return true; }
+    SYM(arm, void (*)(CombatControl*, int), "_ZN13CombatControl13ArmTeleporterEi");
+    SYM(armed, int (*)(CombatControl*), "_ZN13CombatControl15TeleporterArmedEv");
+    arm(&g->combatControl, mode);
+    // the game refuses to arm a send with nobody in the teleporter, or a return with
+    // nobody to bring back / no charge: report what it actually did
+    return armed(&g->combatControl) == mode;
+}
+int arm_teleporter_raw(int value) {
+    CommandGui* g = gui();
+    if (!g) return -1;
+    using ArmFn = void (*)(CombatControl*, int); using ArmedFn = int (*)(CombatControl*);
+    static ArmFn arm = sym<ArmFn>("_ZN13CombatControl13ArmTeleporterEi");
+    static ArmedFn armed = sym<ArmedFn>("_ZN13CombatControl15TeleporterArmedEv");
+    if (!arm || !armed) return -1;
+    arm(&g->combatControl, value);
+    return armed(&g->combatControl);
+}
+bool arm_hacking(bool on) {
+    CommandGui* g = gui();
+    ShipManager* sm = player();
+    if (!g || !sm) return false;
+    if (!has_system(15)) return false;
+    if (!on) { SYM(dis, void (*)(CombatControl*), "_ZN13CombatControl13DisarmHackingEv"); dis(&g->combatControl); return true; }
+    SYM(getSys, ShipSystem* (*)(ShipManager*, int), "_ZN11ShipManager9GetSystemEi");
+    SYM(setArmed, void (*)(void*, bool), "_ZN13HackingSystem8SetArmedEb");
+    ShipSystem* hs = getSys(sm, 15);
+    if (!sane(hs)) return false;
+    setArmed(hs, true);
+    return true;
+}
+bool arm_mind(bool on) {
+    CommandGui* g = gui();
+    if (!g || !has_system(14)) return false;
+    if (!on) { SYM(dis, void (*)(CombatControl*), "_ZN13CombatControl17DisarmMindControlEv"); dis(&g->combatControl); return true; }
+    SYM(arm, void (*)(CombatControl*, int), "_ZN13CombatControl14ArmMindControlEi");
+    arm(&g->combatControl, 1);
+    return true;
+}
+bool combat_click(int x, int y) {
+    CommandGui* g = gui();
+    if (!g) return false;
+    SYM(mc, void (*)(CombatControl*, int, int, bool), "_ZN13CombatControl10MouseClickEiib");
+    mc(&g->combatControl, x, y, false);
+    return true;
+}
+bool hack_room(int roomId) {
+    ShipManager* sm = player();
+    ShipManager* en = enemy();
+    CommandGui* g = gui();
+    if (!sm || !en || !g || !has_system(15)) return false;
+    SYM(getSys, ShipSystem* (*)(ShipManager*, int), "_ZN11ShipManager9GetSystemEi");
+    SYM(inRoom, ShipSystem* (*)(ShipManager*, int), "_ZN11ShipManager15GetSystemInRoomEi");
+    SYM(canHack, bool (*)(void*), "_ZN13HackingSystem7CanHackEv");
+    SYM(start, void (*)(void*, ShipSystem*), "_ZN13HackingSystem12StartHackingEP10ShipSystem");
+    SYM(dis, void (*)(CombatControl*), "_ZN13CombatControl13DisarmHackingEv");
+    ShipSystem* target = inRoom(en, roomId);
+    if (!sane(target)) { ensign::logf("hack_room: no system in enemy room %d", roomId); return false; }   // stay armed
+    ShipSystem* hs = getSys(sm, 15);
+    if (!sane(hs)) { ensign::logf("hack_room: no hacking system"); return false; }
+    if (!canHack(hs)) { ensign::logf("hack_room: HackingSystem::CanHack is false"); return false; }
+    start(hs, target);
+    dis(&g->combatControl);
+    ensign::logf("hack_room: started hacking of system %d in room %d", target->iSystemType, roomId);
+    return true;
+}
+
+bool cloak_on() {
+    ShipManager* sm = player();
+    if (!sm) return false;
+    SYM(getSys, ShipSystem* (*)(ShipManager*, int), "_ZN11ShipManager9GetSystemEi");
+    SYM(ready, bool (*)(void*), "_ZN14CloakingSystem5ReadyEv");
+    SYM(on, void (*)(void*, bool), "_ZN14CloakingSystem11SetTurnedOnEb");
+    ShipSystem* s = getSys(sm, 10);
+    if (!sane(s) || !ready(s)) return false;
+    on(s, true);
+    return true;
+}
+bool battery_on() {
+    ShipManager* sm = player();
+    if (!sm) return false;
+    SYM(getSys, ShipSystem* (*)(ShipManager*, int), "_ZN11ShipManager9GetSystemEi");
+    SYM(ready, bool (*)(void*), "_ZN13BatterySystem5ReadyEv");
+    SYM(on, void (*)(void*, bool, bool), "_ZN13BatterySystem11SetTurnedOnEbb");
+    ShipSystem* s = getSys(sm, 12);
+    if (!sane(s) || !ready(s)) return false;
+    on(s, true, false);
+    return true;
+}
+
 bool map_click(int x, int y) {
     CommandGui* g = gui();
     if (!g || !sane(g->starMap)) return false;

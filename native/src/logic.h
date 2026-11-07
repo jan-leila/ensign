@@ -25,6 +25,16 @@ bool move_crew(int crewIndex, int roomId);     // index into ShipManager::vCrewL
 bool door(bool airlock, int index, bool open); // index into vDoorList / vOuterAirlocks
 bool set_paused(bool paused);
 bool paused();
+// special systems: arming state (teleport 0/1 send/2 return, hacking, mind 0/1) and the actions
+void special_armed(int& teleport, bool& hacking, int& mind);
+bool arm_teleporter(int mode);                 // 0 disarms
+int arm_teleporter_raw(int value);             // dev probe: ArmTeleporter(value), returns TeleporterArmed()
+bool arm_hacking(bool on);
+bool arm_mind(bool on);
+bool combat_click(int x, int y);               // CombatControl::MouseClick: the target step for mind control / teleport
+bool hack_room(int roomId);                    // HackingSystem::StartHacking on the system in that enemy room
+bool cloak_on();                               // CloakingSystem::SetTurnedOn when ready
+bool battery_on();                             // BatterySystem::SetTurnedOn when ready
 
 // screens --------------------------------------------------------------------
 bool map_click(int x, int y);                  // StarMap::MouseClick (beacon / button centres)

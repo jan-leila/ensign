@@ -27,7 +27,10 @@ Switch Pro or generic pad. It is built on the
   add more. Pointing freely with the touchpad or right stick works too: A over
   a room sends the selection there or opens that room. Y is always the FTL jump.
 * **Systems.** On a reactor box A adds power, B removes it, X turns it off
-  (the triggers add/remove too). On a weapon or drone slot A powers it up and,
+  (the triggers add/remove too). On cloaking or the backup battery X fires
+  them; on hacking or mind control X arms them and A on an enemy room picks
+  the target; on the teleporter X arms a send, X again switches to return,
+  and A on the enemy room beams the crew. B cancels any of these. On a weapon or drone slot A powers it up and,
   once powered, aims it (hold A and move to re-order); B cancels an aim and
   then powers the slot off; X powers and aims in one go. Aiming locks the
   frame to the enemy ship's rooms, beams take two points, bombs and the

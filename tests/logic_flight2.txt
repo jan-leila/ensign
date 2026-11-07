@@ -1,0 +1,59 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+shot game_ship
+log --- force a hostile encounter
+event PIRATE
+wait 2
+dump
+focus choice 0
+press a
+wait 2
+dump
+shot combat_event
+wait_screen game 8
+dump
+log --- enemy panel
+press group_enemy
+wait 0.5
+dump
+shot combat_enemy
+log --- shields 2 -> 1 -> 2 one call per frame
+logic sysPower 0 -1
+wait 0.4
+dump
+logic sysPower 0 1
+wait 0.4
+dump
+log --- power slot 0 (missile), arm it, fire at room 2; then swap slots and check doors
+logic weaponPower 0 true
+wait 0.4
+logic armWeapon 0
+wait 0.3
+dump
+logic fireRoom 1 2
+wait 0.5
+dump
+logic swapWeapons 0 1
+wait 0.4
+dump
+doors
+logic door false 15 true
+wait 0.6
+doors
+logic door false 15 false
+wait 0.6
+doors
+end

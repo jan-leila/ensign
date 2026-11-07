@@ -44,9 +44,6 @@ wait 0.3
 focus armament 1
 wait 0.3
 dump
-press a
-wait 0.6
-dump
 press x
 wait 0.6
 dump
@@ -77,6 +74,11 @@ nav down
 wait 0.3
 shot combat_beam
 dump
+press a
+wait 0.8
+dump
+nav up
+wait 0.4
 press a
 wait 0.8
 dump

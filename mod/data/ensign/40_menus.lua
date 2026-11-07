@@ -91,6 +91,27 @@ local function clickFocus(button, opts)
     end
 end
 
+-- Activate a hit through the game's own handler for that screen (no mouse emulation);
+-- returns false when there is no direct route, so the caller clicks instead.
+local function activate(screen, h)
+    if not h then return false end
+    local cx, cy = E.center(h)
+    if screen == "event" and h.kind == "choice" then return Ensign.choiceClick(cx, cy) end
+    if screen == "starmap" then
+        if h.kind == "close" then return Ensign.mapClose() end
+        if h.kind == "location" or h.kind == "button" or h.kind == "sector" then return Ensign.mapClick(cx, cy) end
+    end
+    if screen == "store" then
+        if h.kind == "store" or (h.kind == "tab" and h.id >= 10) or (h.kind == "close" and h.id == 201) then return Ensign.storeClick(cx, cy) end
+        if h.kind == "tab" then return Ensign.tabSet(1, h.id) end
+    end
+    if screen == "shipscreens" and h.kind == "tab" then return Ensign.tabSet(0, h.id) end
+    return false
+end
+local function activateOrClick(screen, h)
+    if not activate(screen, h) then C.snapTo(h); C.click(1) end
+end
+
 local function cycleTabs(dir)
     local tabs = N.filterKind(M.hits, kinds("tab"))
     if #tabs == 0 then return false end
@@ -102,8 +123,7 @@ local function cycleTabs(dir)
     for i, t in ipairs(tabs) do if t.id == cur then idx = i end end
     idx = idx + dir
     if idx < 1 then idx = #tabs elseif idx > #tabs then idx = 1 end
-    C.snapTo(tabs[idx])
-    C.click(1)
+    activateOrClick(M.screen, tabs[idx])
     return true
 end
 
@@ -191,21 +211,27 @@ function M.update(screen)
         end
     end
 
-    if M.carry and screen ~= M.carry.screen then C.release(1); M.carry = nil end
+    local function dropAt(h)
+        if M.carry.direct then Ensign.equipUp(E.center(h)) else C.snapTo(h); C.release(1) end
+    end
+    if M.carry and screen ~= M.carry.screen then dropAt(M.carry.origin); M.carry = nil end
     if M.carry and I.pressed("menu_drop") then
-        C.release(1)                -- drop where the frame is
+        dropAt(C.focus or M.carry.origin)   -- drop where the frame is
         M.carry = nil
     elseif not M.carry and C.focus and PICKABLE[C.focus.kind] and I.pressed("menu_pickup") then
         C.snapTo(C.focus)
-        C.press(1)                  -- pick up: the button stays held while the frame moves
-        M.carry = { origin = C.focus, screen = screen }
+        local direct = C.focus.kind == "equip" and Ensign.equipClick(E.center(C.focus))
+        if not direct then C.press(1) end   -- the crew tab has no direct route: the button stays held while the frame moves
+        M.carry = { origin = C.focus, screen = screen, direct = direct }
     elseif not M.carry and (I.pressed("menu_select") or I.pressed("cursor_click")) then
         if screen == "rename" or screen == "input" then
             C.key(E.KEY.RETURN)
         elseif screen == "starmap" and C.focus and C.focus.kind == "location" and M.lastLocation and E.sameHit(C.focus, M.lastLocation) then
             -- second press on the same beacon: jump
             local jb = findHit("button", 1)
-            if jb then C.snapTo(jb); C.click(1); C.snapTo(C.focus) end
+            if jb then activateOrClick(screen, jb); C.snapTo(C.focus) end
+        elseif C.focus and C.mode ~= "free" and activate(screen, C.focus) then
+            if screen == "starmap" and C.focus.kind == "location" then M.lastLocation = C.focus end
         else
             clickFocus(1)
             if screen == "starmap" and C.focus and C.focus.kind == "location" then M.lastLocation = C.focus end
@@ -214,18 +240,17 @@ function M.update(screen)
     if screen == "starmap" then
         if I.pressed("menu_alt") then
             local wait = findHit("button", 2)
-            if wait then C.snapTo(wait); C.click(1); if C.focus then C.snapTo(C.focus) end end
+            if wait and wait.enabled ~= false then activateOrClick(screen, wait); if C.focus then C.snapTo(C.focus) end end
         end
         if I.pressed("menu_info") then
             local d = findHit("button", 3)
-            if d then C.snapTo(d); C.click(1); if C.focus then C.snapTo(C.focus) end end
+            if d and d.enabled ~= false then activateOrClick(screen, d); if C.focus then C.snapTo(C.focus) end end
         end
     elseif I.pressed("menu_alt") or I.pressed("cursor_rclick") then
         clickFocus(3)
     end
     if M.carry and I.pressed("menu_put_back") then
-        C.snapTo(M.carry.origin)   -- put it back
-        C.release(1)
+        dropAt(M.carry.origin)     -- put it back
         M.carry = nil
     elseif not M.carry and I.pressed("menu_back") then
         if screen == "confirm" then
@@ -238,8 +263,10 @@ function M.update(screen)
             local b = findHit("button", 2)  -- "back" to the main menu
             if b then C.snapTo(b); C.click(1) else C.key(E.KEY.ESC) end
         elseif screen == "starmap" then
-            local cl = findHit("close")
-            if cl then C.snapTo(cl); C.click(1) else C.key(E.KEY.ESC) end
+            if not Ensign.mapClose() then
+                local cl = findHit("close")
+                if cl then C.snapTo(cl); C.click(1) else C.key(E.KEY.ESC) end
+            end
         elseif screen == "store" or screen == "shipscreens" then
             local cl = findHit("close", 200) or findHit("close")
             if cl then C.snapTo(cl); C.click(1) else C.key(E.KEY.ESC) end

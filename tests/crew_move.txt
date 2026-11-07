@@ -14,55 +14,47 @@ press_if event a
 wait_screen game 6
 press pause
 wait 0.5
-press rb
+log --- crew list: select crew 0, cross to the ship, send to room 10
+panel crew
 wait 0.3
-press rb
-wait 0.3
-press rb
-wait 0.3
-press rb
-wait 0.3
-nav up
-wait 0.3
-nav up
+focus crewbox 0
 wait 0.3
 press a
-wait 0.5
-press b
-wait 0.5
-nav up
-wait 0.4
-nav up
 wait 0.4
 dump
-press a
+nav right
+wait 0.4
+dump
+focus room 10
 wait 0.3
+press a
+wait 0.4
 dump
 press pause
-wait 1
+wait 5
 dump
-wait 2
-dump
-wait 3
-dump
-log --- now via room crew mode: enter room 14 (Xin Xin), pick, back, send to room 10
+press pause
+wait 0.3
 press b
+wait 0.3
+log --- detail mode: room 14, select its unit, back, send to room 6
+panel ship
 wait 0.3
 focus room 14
 wait 0.3
 press a
-wait 0.5
-dump
+wait 0.4
 press a
-wait 0.5
+wait 0.4
 dump
 press b
-wait 0.3
-focus room 10
+wait 0.4
+focus room 6
 wait 0.3
 press a
-wait 0.3
+wait 0.4
 dump
-wait 4
+press pause
+wait 5
 dump
 end

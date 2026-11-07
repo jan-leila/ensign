@@ -11,7 +11,7 @@
 CXX      ?= g++
 BUILD    ?= ../build
 TARGET   := $(BUILD)/ensign.amd64.so
-SRCS     := src/ensign.cpp src/lua_shim.cpp src/steam_bridge.cpp src/game.cpp src/log.cpp
+SRCS     := src/ensign.cpp src/lua_shim.cpp src/steam_bridge.cpp src/game.cpp src/logic.cpp src/log.cpp
 OBJS     := $(patsubst src/%.cpp,$(BUILD)/obj/%.o,$(SRCS))
 LUA_CFLAGS := $(shell pkg-config --cflags lua5.3 2>/dev/null || pkg-config --cflags lua 2>/dev/null)
 VERSION  ?= $(shell git -C .. describe --tags --always --dirty 2>/dev/null || echo dev)

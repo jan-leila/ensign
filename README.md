@@ -27,10 +27,11 @@ Switch Pro or generic pad. It is built on the
   add more. Pointing freely with the touchpad or right stick works too: A over
   a room sends the selection there or opens that room. Y is always the FTL jump.
 * **Systems.** On a reactor box A adds power, B removes it, X turns it off
-  (the triggers add/remove too). On a weapon or drone slot A toggles it (hold
-  A and move to re-order), B turns it off, X re-targets it; aiming then locks
-  the frame to valid targets, beams take two points, bombs and the teleporter
-  can swap ships.
+  (the triggers add/remove too). On a weapon or drone slot A powers it up and,
+  once powered, aims it (hold A and move to re-order); B cancels an aim and
+  then powers the slot off; X powers and aims in one go. Aiming locks the
+  frame to the enemy ship's rooms, beams take two points, bombs and the
+  teleporter can swap ships.
 * **Every verb is its own Steam action** (`room_open`, `detail_toggle_door`,
   `system_off`, `slot_retarget`, ...), all on the natural buttons by default,
   so any single one can be rebound without moving the others.
@@ -60,8 +61,9 @@ Install instructions are in [`docs/INSTALL.md`](docs/INSTALL.md).
 ```
 Steam client ── Steam Input API ──┐
                                   ▼
-FTL.amd64 ◄── LD_PRELOAD ── ensign.amd64.so  (native/)   reads UI geometry, injects
-     ▲                             │                      input, talks to Steam Input
+FTL.amd64 ◄── LD_PRELOAD ── ensign.amd64.so  (native/)   reads UI geometry, calls the
+     ▲                             │                      game's logic directly, talks
+     │                             │                      to Steam Input
      └──── LD_PRELOAD ── Hyperspace.so  ◄── Lua `Ensign` table ──┘
                               │
                               └── mod/data/ensign/*.lua (Ensign.ftl)  navigation, panels,
@@ -70,11 +72,22 @@ FTL.amd64 ◄── LD_PRELOAD ── ensign.amd64.so  (native/)   reads UI geom
 
 * `native/` builds `build/ensign.amd64.so`. It must be preloaded **before**
   Hyperspace: it interposes `luaL_newstate` to register an `Ensign` table in
-  Hyperspace's Lua state, calls the game's own input handlers (exported by
-  Hyperspace) to inject mouse/keyboard events in the game's logical
-  1280x720 space, reads the UI structs (`native/third_party/`) to enumerate
-  clickable rectangles per screen, and drives `ISteamInput` through its vtable
-  (`native/steam_input_min.h`, no SDK required) including rumble and haptics.
+  Hyperspace's Lua state, reads the UI structs (`native/third_party/`) to
+  enumerate the elements on each screen, and drives `ISteamInput` through its
+  vtable (`native/steam_input_min.h`, no SDK required) including rumble and
+  haptics.
+* **Actions are direct calls into the game's logic**, not emulated clicks
+  (`native/src/logic.cpp`). FTL 1.6.13 for Linux is a fixed, non-PIE binary
+  that still carries its symbol table, so the shim resolves functions such as
+  `CrewMember::MoveToRoom`, `ShipManager::IncreaseSystemPower`,
+  `WeaponSystem::PowerWeapon`, `WeaponControl::SelectArmament` / `Fire`,
+  `Door::Open` / `Close`, `CommandGui::SetPaused`, `StarMap::MouseClick`,
+  `ChoiceBox::MouseClick`, `Store::MouseClick`, `Equipment::MouseClick` /
+  `MouseUp` and `TabbedWindow::SetTab` by mangled name at startup and calls
+  them with the same arguments the game's own handlers would. The Lua side
+  falls back to the game's mouse handlers (also called directly, in the
+  logical 1280x720 space) only for plain UI buttons and the few screens that
+  have no logic entry point.
 * `mod/` is the `.ftl` mod (packed to `dist/Ensign.ftl`): Lua scripts loaded
   through `hyperspace.xml`, plus FTL-style glyph art in `img/ensign/`.
 * `steam_input/` holds the Steam Input action manifest and default

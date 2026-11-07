@@ -1,0 +1,68 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+shot game_ship
+log --- force a hostile encounter
+event PIRATE
+wait 2
+dump
+focus choice 0
+press a
+wait 2
+dump
+shot combat_event
+wait_screen game 8
+dump
+log --- enemy panel
+press group_enemy
+wait 0.5
+dump
+shot combat_enemy
+log --- missile aimed at room 2 (up twice from room 6), laser aimed at room 6
+power 3 3
+press pause
+wait 0.3
+panel weapons
+wait 0.3
+focus armament 0
+wait 0.3
+press x
+wait 0.6
+dump
+nav up
+wait 0.4
+nav up
+wait 0.4
+dump
+shot aim_missile_room2
+press a
+wait 0.8
+dump
+panel weapons
+wait 0.3
+focus armament 1
+wait 0.3
+press x
+wait 0.6
+nav down
+wait 0.4
+nav down
+wait 0.4
+dump
+shot aim_laser_room6
+press a
+wait 0.8
+dump
+end

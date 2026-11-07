@@ -44,6 +44,7 @@ local function gameState()
         pcall(function() s = s .. " enginesPower=" .. tostring(ship:GetSystem(1).powerState.first) end)
         s = s .. " crewMode=" .. tostring(E.game.roomCrewMode) .. " targeting=" .. tostring(E.game.targeting)
         s = s .. " aimPts=" .. tostring(gui.combatControl.aimingPoints:size()) .. " movingBeam=" .. tostring(gui.combatControl.movingBeam)
+        pcall(function() s = s .. " selRoom=" .. tostring(gui.combatControl.selectedRoom) .. "/" .. tostring(gui.combatControl.selectedSelfRoom) .. " selPlayer=" .. tostring(gui.combatControl.selectedPlayerShip) end)
         if w then s = s .. " wTargets=" .. tostring(w.targets:size()) end
         if ship and ship.weaponSystem then
             s = s .. " weaponsPower=" .. tostring(ship.weaponSystem.powerState.first)
@@ -61,7 +62,10 @@ local function gameState()
         local list = ship.vCrewList
         for i = 0, list:size() - 1 do
             local c = list[i]
-            if c and c.iShipId == 0 then s = s .. string.format(" crew%d[%s room=%d pos=%d,%d sel=%d]", i, c:GetName(), c.iRoomId, c.x, c.y, c.selectionState) end
+            local okc, err = pcall(function()
+                if c and c.iShipId == 0 then s = s .. string.format(" crew%d[%s room=%d pos=%d,%d sel=%d]", i, c:GetName(), c.iRoomId, c.x, c.y, c.selectionState) end
+            end)
+            if not okc then s = s .. string.format(" crew%d[ERROR %s]", i, tostring(err)) end
         end
     end)
     return s
@@ -101,6 +105,26 @@ function D.update()
         local fx, fy = rest:match("^%S+%s+(%S+)%s+(%S+)")
         if fx then E.hud.SUBSYSTEM_FRAME_DX, E.hud.SUBSYSTEM_FRAME_DY = tonumber(fx), tonumber(fy) end
         emit("sublift " .. rest)
+    elseif cmd == "logic" then   -- logic <Ensign function> [args...]: direct game-logic call (numbers, true/false)
+        local args = {}
+        for tok in (rest:match("^%S+%s*(.*)$") or ""):gmatch("%S+") do
+            if tok == "true" then args[#args + 1] = true elseif tok == "false" then args[#args + 1] = false
+            else args[#args + 1] = tonumber(tok) or tok end
+        end
+        if a1 == "fireRoom" then   -- fireRoom <shipId> <roomId> [<roomId2>]: aim the armed weapon at room centres
+            local pts = {}
+            for i = 2, #args do local x, y = Ensign.roomCenter(args[1], args[i]); pts[#pts + 1] = x; pts[#pts + 1] = y end
+            emit("logic fireRoom " .. rest .. " -> " .. tostring(Ensign.fireAt(args[1], table.unpack(pts))) .. " via " .. table.concat(pts, ","))
+        else
+            local f = Ensign[a1]
+            if not f then emit("logic: no Ensign." .. tostring(a1))
+            else
+                local r = { pcall(f, table.unpack(args)) }
+                local vals = {}
+                for i = 2, #r do vals[#vals + 1] = tostring(r[i]) end
+                emit("logic " .. rest .. " -> " .. (r[1] and table.concat(vals, ",") or ("ERROR " .. tostring(r[2]))))
+            end
+        end
     elseif cmd == "stick" then E.input.virtualAxis(tonumber(a1) or 0, tonumber(a2) or 0, 3); emit("stick " .. rest)
     elseif cmd == "move" then E.cursor.mode = "free"; E.cursor.focus = nil; E.cursor.moveTo(tonumber(a1) or 0, tonumber(a2) or 0); emit("move " .. rest)
     elseif cmd == "click" then E.cursor.click(tonumber(a1) or 1); emit("click " .. (a1 or "1"))
@@ -126,7 +150,7 @@ function D.update()
         local x, y = tonumber(a2), tonumber(rest:match("^%S+%s+%S+%s+(%S+)"))
         emit(string.format("hover sys%s at %d,%d = %s", a1, x, y, tostring(Ensign.sysboxHover(tonumber(a1)))))
     elseif cmd == "doors" then
-        for _, d in ipairs(E.game.allDoors()) do emit(string.format("door %s rooms %s centre %d,%d %s", tostring(d.id), d.label, d.x + d.w / 2, d.y + d.h / 2, d.door.bVertical and "V" or "H")) end
+        for _, d in ipairs(E.game.allDoors()) do emit(string.format("door %s rooms %s centre %d,%d %s open=%s", tostring(d.id), d.label, d.x + d.w / 2, d.y + d.h / 2, d.door.bVertical and "V" or "H", tostring(d.door.bOpen))) end
         for _, h in ipairs(Ensign.hitboxes()) do if h.kind == "room" and h.extra == 0 then emit(string.format("room %d rect %d,%d %dx%d", h.id, h.x, h.y, h.w, h.h)) end end
     elseif cmd == "probe" then Ensign.devProbe(); emit("probe written to ensign.log")
     elseif cmd == "event" then

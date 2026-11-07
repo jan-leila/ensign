@@ -1,0 +1,83 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+shot game_ship
+log --- force a hostile encounter
+event PIRATE
+wait 2
+dump
+focus choice 0
+press a
+wait 2
+dump
+shot combat_event
+wait_screen game 8
+dump
+log --- enemy panel
+press group_enemy
+wait 0.5
+dump
+shot combat_enemy
+log --- direct logic calls in combat
+logic logicStatus
+dump
+logic sysPower 0 -1
+wait 0.3
+dump
+logic sysPower 0 1
+wait 0.3
+dump
+logic weaponPower 1 false
+wait 0.3
+dump
+logic weaponPower 1 true
+wait 0.3
+dump
+log --- arm slot 0 (the one the click path could not target) and fire at enemy room 2
+logic armWeapon 0
+wait 0.3
+dump
+logic fireRoom 1 2
+wait 0.5
+dump
+logic armWeapon -1
+wait 0.3
+dump
+log --- arm slot 1 and fire at room 3
+logic armWeapon 1
+wait 0.3
+logic fireRoom 1 3
+wait 0.5
+dump
+log --- crew 1 to room 6, door 15 open then closed, pause on/off, swap slots 0/1
+logic moveCrew 1 6
+wait 4
+dump
+logic door false 15 true
+wait 0.5
+doors
+logic door false 15 false
+wait 0.5
+doors
+logic setPaused true
+wait 0.3
+dump
+logic setPaused false
+wait 0.3
+dump
+logic swapWeapons 0 1
+wait 0.3
+dump
+end

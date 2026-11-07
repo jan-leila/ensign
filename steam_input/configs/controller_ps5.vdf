@@ -134,7 +134,7 @@
 							"binding"		"game_action InGame target_confirm, Targeting: confirm"
 							"binding"		"game_action InGame beam_point, Beam: choose point"
 							"binding"		"game_action InGame system_power_up, System: add power"
-							"binding"		"game_action InGame slot_toggle, Weapon / drone: toggle power"
+							"binding"		"game_action InGame slot_toggle, Weapon / drone: power on then aim (hold: move)"
 							"binding"		"game_action InGame crew_select, Crew: select"
 							"binding"		"game_action InGame ui_select, UI: select"
 						}
@@ -153,7 +153,7 @@
 							"binding"		"game_action InGame detail_back, Detail: back"
 							"binding"		"game_action InGame target_cancel, Targeting: cancel"
 							"binding"		"game_action InGame system_power_down, System: remove power"
-							"binding"		"game_action InGame slot_off, Weapon / drone: turn off"
+							"binding"		"game_action InGame slot_off, Weapon / drone: power off"
 							"binding"		"game_action InGame crew_deselect_all, Crew: deselect all"
 							"binding"		"game_action InGame ui_back, UI: back"
 						}
@@ -170,7 +170,7 @@
 						{
 							"binding"		"game_action InGame room_detail, Room: show details"
 							"binding"		"game_action InGame system_off, System: turn off"
-							"binding"		"game_action InGame slot_retarget, Weapon / drone: re-target"
+							"binding"		"game_action InGame slot_retarget, Weapon: power and aim"
 							"binding"		"game_action InGame crew_reorder, Crew: reorder"
 						}
 					}

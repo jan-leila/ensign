@@ -7,6 +7,7 @@
 #include "lua_shim.h"
 #include "steam_bridge.h"
 #include "game.h"
+#include "logic.h"
 #include "log.h"
 #include <dlfcn.h>
 #include <cstdlib>
@@ -199,6 +200,40 @@ int l_devWriteFile(lua_State* L) {
     lua_pushboolean(L, true);
     return 1;
 }
+
+// ---- direct game logic (see logic.h) ---------------------------------------
+static bool logic_ready() { static bool ok = logic::init(); return ok || logic::status()[0] != 'c'; }
+int l_logicStatus(lua_State* L) { logic_ready(); lua_pushstring(L, logic::status()); return 1; }
+int l_sysPower(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::sys_power((int)luaL_checkinteger(L, 1), (int)luaL_checkinteger(L, 2))); return 1; }
+int l_weaponPower(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::weapon_power((int)luaL_checkinteger(L, 1), lua_toboolean(L, 2))); return 1; }
+int l_dronePower(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::drone_power((int)luaL_checkinteger(L, 1), lua_toboolean(L, 2))); return 1; }
+int l_armWeapon(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::arm_weapon((int)luaL_checkinteger(L, 1))); return 1; }
+int l_roomCenter(lua_State* L) {
+    logic_ready();
+    float x = 0, y = 0;
+    if (!logic::room_center((int)luaL_checkinteger(L, 1), (int)luaL_checkinteger(L, 2), x, y)) { lua_pushnil(L); return 1; }
+    lua_pushnumber(L, x); lua_pushnumber(L, y); return 2;
+}
+int l_fireAt(lua_State* L) {
+    logic_ready();
+    float xy[4] = { (float)luaL_checknumber(L, 2), (float)luaL_checknumber(L, 3), (float)luaL_optnumber(L, 4, 0), (float)luaL_optnumber(L, 5, 0) };
+    int n = lua_isnoneornil(L, 4) ? 1 : 2;
+    lua_pushboolean(L, logic::fire_at((int)luaL_checkinteger(L, 1), n, xy)); return 1;
+}
+int l_swapWeapons(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::swap_weapons((int)luaL_checkinteger(L, 1), (int)luaL_checkinteger(L, 2))); return 1; }
+int l_swapDrones(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::swap_drones((int)luaL_checkinteger(L, 1), (int)luaL_checkinteger(L, 2))); return 1; }
+int l_moveCrew(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::move_crew((int)luaL_checkinteger(L, 1), (int)luaL_checkinteger(L, 2))); return 1; }
+int l_door(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::door(lua_toboolean(L, 1), (int)luaL_checkinteger(L, 2), lua_toboolean(L, 3))); return 1; }
+int l_setPaused(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::set_paused(lua_toboolean(L, 1))); return 1; }
+int l_paused(lua_State* L) { lua_pushboolean(L, logic::paused()); return 1; }
+int l_mapClick(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::map_click((int)luaL_checknumber(L, 1), (int)luaL_checknumber(L, 2))); return 1; }
+int l_mapClose(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::map_close()); return 1; }
+int l_choiceClick(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::choice_click((int)luaL_checknumber(L, 1), (int)luaL_checknumber(L, 2))); return 1; }
+int l_storeClick(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::store_click((int)luaL_checknumber(L, 1), (int)luaL_checknumber(L, 2))); return 1; }
+int l_equipClick(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::equip_click((int)luaL_checknumber(L, 1), (int)luaL_checknumber(L, 2))); return 1; }
+int l_equipUp(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::equip_up((int)luaL_checknumber(L, 1), (int)luaL_checknumber(L, 2))); return 1; }
+int l_tabSet(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::tab_set((int)luaL_checkinteger(L, 1), (int)luaL_checkinteger(L, 2))); return 1; }
+
 int l_devProbe(lua_State* L) { if (!getenv("ENSIGN_DEV")) { lua_pushnil(L); return 1; } std::string s = game::dev_probe(); ensign::logf("probe:\n%s", s.c_str()); lua_pushstring(L, s.c_str()); return 1; }
 int l_devEnabled(lua_State* L) { lua_pushboolean(L, getenv("ENSIGN_DEV") != nullptr); return 1; }
 int l_devEnv(lua_State* L) {
@@ -219,6 +254,11 @@ const luaL_Reg kFuncs[] = {
     {"keyDown", l_keyDown}, {"keyUp", l_keyUp}, {"textInput", l_textInput},
     {"screen", l_screen}, {"hitboxes", l_hitboxes}, {"shipOrigins", l_shipOrigins},
     {"armamentHover", l_armamentHover}, {"sysboxHover", l_sysboxHover}, {"liftSubsystems", l_liftSubsystems}, {"time", l_time},
+    {"logicStatus", l_logicStatus}, {"sysPower", l_sysPower}, {"weaponPower", l_weaponPower}, {"dronePower", l_dronePower},
+    {"armWeapon", l_armWeapon}, {"roomCenter", l_roomCenter}, {"fireAt", l_fireAt}, {"swapWeapons", l_swapWeapons}, {"swapDrones", l_swapDrones},
+    {"moveCrew", l_moveCrew}, {"door", l_door}, {"setPaused", l_setPaused}, {"paused", l_paused},
+    {"mapClick", l_mapClick}, {"mapClose", l_mapClose}, {"choiceClick", l_choiceClick}, {"storeClick", l_storeClick},
+    {"equipClick", l_equipClick}, {"equipUp", l_equipUp}, {"tabSet", l_tabSet},
     {"devReadFile", l_devReadFile}, {"devWriteFile", l_devWriteFile}, {"devEnabled", l_devEnabled}, {"devEnv", l_devEnv}, {"devProbe", l_devProbe},
     {nullptr, nullptr}
 };

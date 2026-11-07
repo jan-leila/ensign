@@ -1,0 +1,116 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+shot game_ship
+log --- force a hostile encounter
+event PIRATE
+wait 2
+dump
+focus choice 0
+press a
+wait 2
+dump
+shot combat_event
+wait_screen game 8
+dump
+log --- enemy panel
+press group_enemy
+wait 0.5
+dump
+shot combat_enemy
+log --- add a Leto (MISSILES_1) in slot 2 and a Burst Laser I in slot 3; weapons at max power
+addweapon MISSILES_1 2
+wait 0.3
+addweapon LASER_BURST_2 3
+wait 0.3
+power 3 8
+wait 0.3
+press pause
+wait 0.3
+dump
+log --- aim slot 2 (Leto)
+panel weapons
+wait 0.3
+focus armament 2
+wait 0.3
+press x
+wait 0.6
+dump
+press a
+wait 0.8
+dump
+press b
+wait 0.4
+log --- aim slot 3 (second laser)
+panel weapons
+wait 0.3
+focus armament 3
+wait 0.3
+press x
+wait 0.6
+dump
+press a
+wait 0.8
+dump
+press b
+wait 0.4
+log --- charge the Artemis for 12 s unpaused, then aim it
+press pause
+wait 12
+press pause
+wait 0.3
+panel weapons
+wait 0.3
+focus armament 0
+wait 0.3
+press x
+wait 0.6
+dump
+press a
+wait 0.8
+dump
+press b
+wait 0.4
+log --- swap slots 0 and 1 by dragging, then aim slot 0 (now the laser) and slot 1 (now the Artemis)
+panel weapons
+wait 0.3
+focus armament 0
+wait 0.3
+press a 70
+wait 0.25
+nav right
+wait 1.1
+dump
+focus armament 0
+wait 0.3
+press x
+wait 0.6
+dump
+press a
+wait 0.8
+dump
+press b
+wait 0.4
+panel weapons
+wait 0.3
+focus armament 1
+wait 0.3
+press x
+wait 0.6
+dump
+press a
+wait 0.8
+dump
+end

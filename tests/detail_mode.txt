@@ -15,7 +15,7 @@ wait_screen game 6
 fakepad xbox
 press pause
 wait 0.4
-log --- detail mode: room 14 -> select unit -> right (no door on that wall) straight into room 10 -> select unit
+log --- detail mode: room 14 -> select unit -> right leaves the room (room mode on 10) -> X -> select its unit
 panel ship
 wait 0.3
 focus room 14
@@ -27,6 +27,9 @@ press a
 wait 0.4
 dump
 nav right
+wait 0.4
+dump
+press x
 wait 0.4
 dump
 press a

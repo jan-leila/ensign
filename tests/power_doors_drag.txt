@@ -59,6 +59,8 @@ nav right
 wait 1.1
 dump
 log --- Y jumps once the drive is charged (engines back on first)
+panel systems
+wait 0.3
 focus sysbox 1
 wait 0.3
 press a

@@ -13,9 +13,9 @@
 --
 -- Buttons in flight:
 --   A  room: open detail (or send the selected units there)   detail: toggle unit / door
---      system box: power +      slot: toggle      crew portrait: select (adds)
---   B  detail: back to rooms    rooms: deselect all    system box: power -    slot: turn off
---   X  room: open detail (even with units selected)   system box: turn off   slot: re-target
+--      system box: power +      slot: power on, then aim      crew portrait: select (adds)
+--   B  detail: back to rooms    rooms: deselect all    system box: power -    slot: cancel aim, then power off
+--   X  room: open detail (even with units selected)   system box: turn off   slot: power + aim in one go
 --   Y  FTL jump    Start: ship screens    View: inventory    d-pad: move, crossing group edges
 -- With the cursor pointed freely (touchpad / right stick) A over a room still sends the
 -- selected units there, or opens that room's detail mode when nothing is selected.
@@ -103,12 +103,6 @@ local function armedWeapon()
     return nil
 end
 
-local function armedName()
-    local w = armedWeapon()
-    local ok, n = pcall(function() return w.blueprint.name end)
-    return ok and n or nil
-end
-
 local function detectTargeting()
     local gui = E.gui()
     if not gui then return nil end
@@ -185,7 +179,7 @@ function G.allDoors()
                 -- airlocks all report door id -1, so they are keyed by list position instead
                 out[#out + 1] = { kind = "door", id = airlock and (1000 + i) or d.iDoorId, x = ox + d.x - w / 2, y = oy + d.y - h / 2, w = w, h = h,
                                   label = d.iRoom1 .. "," .. d.iRoom2, extra = d.bOpen and 1 or 0, r1 = d.iRoom1, r2 = d.iRoom2,
-                                  door = d, airlock = airlock }
+                                  door = d, airlock = airlock, index = i }
             end
         end
     end
@@ -432,6 +426,29 @@ local function systemPower(sysId)
     local ok, p = pcall(function() return E.playerShip():GetSystem(sysId).powerState.first end)
     return ok and p or 0
 end
+-- ---- direct game logic (native/src/logic.cpp); every call falls back to the screen path
+local function sendSelected(room)
+    local sent, ok = 0, false
+    pcall(function()
+        local list = E.playerShip().vCrewList
+        for i = 0, list:size() - 1 do
+            local c = list[i]
+            if c and c.selectionState == 1 and not c.bDead then
+                sent = sent + 1
+                local moved = Ensign.moveCrew(i, room.id)
+                if E.dev.active then E.log("moveCrew " .. i .. " -> room " .. room.id .. ": " .. tostring(moved)) end
+                if moved then ok = true end
+            end
+        end
+    end)
+    if sent > 0 and not ok then C.snapTo(room); C.click(3) end   -- the game's own right click
+    return sent > 0
+end
+local function slotPowerSet(h, on)
+    if h.extra == 3 then return Ensign.weaponPower(h.id, on) end
+    return Ensign.dronePower(h.id, on)
+end
+
 local function slotPowered(h)
     local ok, v = pcall(function()
         local ship = E.playerShip()
@@ -439,6 +456,23 @@ local function slotPowered(h)
         return ship.droneSystem.drones[h.id].powered
     end)
     return ok and v or false
+end
+-- arm a weapon for aiming; an unpowered one is powered first and armed on the next frame
+local function slotAim(h)
+    if h.extra ~= 3 then return false end
+    if not slotPowered(h) then
+        if not slotPowerSet(h, true) then return false end
+        G.pendingArm = { slot = h.id, at = E.frame + 2 }
+        return true
+    end
+    return Ensign.armWeapon(h.id)
+end
+-- aim the armed weapon at a room (bombs may target our own ship); beams take two rooms
+local function aimAt(room, first)
+    local x, y = Ensign.roomCenter(room.extra, room.id)
+    if not x then return false end
+    if first then return Ensign.fireAt(room.extra, first.x, first.y, x, y) end
+    return Ensign.fireAt(room.extra, x, y)
 end
 
 local function shipIdOfPanel() return G.panel == "enemy" and 1 or 0 end
@@ -483,25 +517,31 @@ function G.update()
     local onShip = (G.panel == "ship" or G.panel == "enemy") and not G.targeting
 
     if G.restore and E.frame >= G.restore.at then restoreSelection(G.restore.keep); G.restore = nil end
-    -- FTL arms the next untargeted weapon right after a target is set; cancel that so one
-    -- X + A aims exactly one weapon and the frame returns to the weapons group
-    if G.confirmed and E.frame >= G.confirmed.at + 3 then
-        local now = armedName()
-        if now and now ~= G.confirmed.name then C.click(3) end
-        if E.frame >= G.confirmed.at + 6 or not now then G.confirmed = nil end
-    end
-    -- weapon / drone slot A: a tap toggles power (FTL: left click powers up, right click
-    -- powers down; a left click on a powered weapon would arm it instead). Holding A, or
-    -- moving while it is held, picks the slot up so it can be dragged to another slot.
+    if G.pendingArm and E.frame >= G.pendingArm.at then Ensign.armWeapon(G.pendingArm.slot); G.pendingArm = nil end
+    if G.drain and G.drain.n > 0 then Ensign.sysPower(G.drain.id, -1); G.drain.n = G.drain.n - 1 end   -- one bar per frame
+
+    -- weapon / drone slot A: a tap powers the slot up, and on a powered weapon arms it
+    -- (the enemy group then takes over for the target). On a powered drone it powers down.
+    -- Holding A, or moving while it is held, picks the slot up to drag it to another slot.
     if G.slotHold then
         local h = G.slotHold
         local moving = I.down("nav_up") or I.down("nav_down") or I.down("nav_left") or I.down("nav_right")
         if not h.started and I.down("slot_toggle") and (E.time - h.at >= 0.3 or moving) then
-            C.snapTo(h.hit); C.press(1); h.started = true; G.drag = "select"
+            h.started = true; G.drag = "slot"               -- carrying the slot: release on another slot swaps them
         end
         if I.released("slot_toggle") or not I.down("slot_toggle") then
-            if h.started then C.release(1); G.drag = nil
-            else C.snapTo(h.hit); C.click(h.powered and 3 or 1) end
+            if h.started then
+                G.drag = nil
+                local dest = C.focus
+                if dest and dest.kind == "armament" and dest.extra == h.hit.extra and dest.id ~= h.hit.id then
+                    if h.hit.extra == 3 then Ensign.swapWeapons(h.hit.id, dest.id) else Ensign.swapDrones(h.hit.id, dest.id) end
+                    E.feedback.pulse("select")
+                end
+            else
+                if not h.powered then slotPowerSet(h.hit, true)          -- power on
+                elseif h.hit.extra == 3 then slotAim(h.hit)              -- powered weapon: aim
+                else slotPowerSet(h.hit, false) end                      -- powered drone: power off
+            end
             G.slotHold = nil
         end
     end
@@ -526,12 +566,6 @@ function G.update()
     if dir then
         if G.detail then
             if not detailNav(dir, shipIdOfPanel()) then transition(dir) end
-        elseif G.targeting == "beam" and G.beamStage == 1 then
-            local step = 17
-            local dx = (dir == "left" and -step) or (dir == "right" and step) or 0
-            local dy = (dir == "up" and -step) or (dir == "down" and step) or 0
-            C.mode = "free"
-            C.moveTo(C.x + dx, C.y + dy)
         else
             local from = focus or { x = C.x - 1, y = C.y - 1, w = 2, h = 2, kind = "_cursor", id = -1 }
             local cands = G.panelHits
@@ -565,9 +599,10 @@ function G.update()
             toggleSelect(t.crew)
             E.feedback.pulse("select")
         elseif t.kind == "door" and I.pressed("detail_toggle_door") then
-            C.moveTo(E.center(t))
-            C.click(1)
-            G.restore = { keep = rememberSelection(), at = E.frame + 3 }
+            if not Ensign.door(t.airlock or false, t.index or -1, t.extra ~= 1) then
+                C.moveTo(E.center(t)); C.click(1)                    -- fallback: the game's own click
+                G.restore = { keep = rememberSelection(), at = E.frame + 3 }
+            end
             E.feedback.pulse("select")
         end
         if I.pressed("detail_back") then
@@ -576,48 +611,57 @@ function G.update()
             if r then C.snapTo(r) elseif focus then C.snapTo(focus) end
         end
     elseif G.targeting == "beam" then
-        if I.pressed("beam_point") then
-            C.click(1)
-            G.beamStage = G.beamStage == 0 and 1 or 0
-            if G.beamStage == 1 then C.mode = "free" else G.confirmed = { name = armedName(), at = E.frame } end
+        local room = (focus and focus.kind == "room") and focus or roomUnder
+        if I.pressed("beam_point") and room then
+            if G.beamStage == 0 then
+                local x, y = Ensign.roomCenter(room.extra, room.id)
+                if x then G.beamStart = { x = x, y = y }; G.beamStage = 1 else C.click(1) end
+            else
+                if not aimAt(room, G.beamStart) then C.click(1) end
+                G.beamStage = 0
+            end
+            E.feedback.pulse("select")
         end
-        if I.pressed("target_cancel") then C.click(3) end
-    elseif G.targeting then
-        if I.pressed("target_confirm") then
-            C.click(1)
-            G.confirmed = { name = armedName(), at = E.frame }
+        if I.pressed("target_cancel") then if not Ensign.armWeapon(-1) then C.click(3) end; G.beamStage = 0 end
+    elseif G.targeting == "weapon" or G.targeting == "bomb" then
+        local room = (focus and focus.kind == "room") and focus or roomUnder
+        if I.pressed("target_confirm") and room then
+            if not aimAt(room) then C.click(1) end
+            E.feedback.pulse("select")
         end
+        if I.pressed("target_cancel") then if not Ensign.armWeapon(-1) then C.click(3) end end
+    elseif G.targeting then   -- hacking / mind control / teleport: the game's own click handlers
+        if I.pressed("target_confirm") then C.click(1) end
         if I.pressed("target_cancel") then C.click(3) end
     elseif onShip and focus and focus.kind == "room" then
         if selectedCrewCount() > 0 then
-            if I.pressed("room_send") then C.click(3); E.feedback.pulse("select") end      -- FTL: right button sends
+            if I.pressed("room_send") then sendSelected(focus); E.feedback.pulse("select") end
             if I.pressed("room_deselect_all") then clearSelection() end
         elseif I.pressed("room_open") then openRoom(focus, shipIdOfPanel()) end
         if I.pressed("room_detail") then enterDetail(focus, shipIdOfPanel()) end
     elseif roomUnder then
         local shipId = roomUnder.extra
         if selectedCrewCount() > 0 then
-            if I.pressed("room_send") then C.click(3); E.feedback.pulse("select") end
+            if I.pressed("room_send") then sendSelected(roomUnder); E.feedback.pulse("select") end
             if I.pressed("room_deselect_all") then clearSelection() end
         elseif I.pressed("room_open") then setPanel(shipId == 1 and "enemy" or "ship", true); openRoom(roomUnder, shipId) end
         if I.pressed("room_detail") then setPanel(shipId == 1 and "enemy" or "ship", true); enterDetail(roomUnder, shipId) end
     elseif sysFocus then
-        if I.pressed("system_power_up") then C.snapTo(focus); C.click(1) end
-        if I.pressed("system_power_down") then C.snapTo(focus); C.click(3) end
-        if I.pressed("system_off") then
-            C.snapTo(focus)
-            for _ = 1, systemPower(focus.id) do C.click(3) end   -- remove every bar
-        end
+        if I.pressed("system_power_up") then if not Ensign.sysPower(focus.id, 1) then E.feedback.pulse("select") end end
+        if I.pressed("system_power_down") then Ensign.sysPower(focus.id, -1) end
+        if I.pressed("system_off") then G.drain = { id = focus.id, n = systemPower(focus.id) } end   -- one bar per frame
     elseif slotFocus then
         if I.pressed("slot_toggle") then G.slotHold = { hit = focus, at = E.time, powered = slotPowered(focus), started = false } end
-        if I.pressed("slot_off") then C.snapTo(focus); C.click(3) end
-        if I.pressed("slot_retarget") then
-            C.snapTo(focus)
-            if not slotPowered(focus) then C.click(1) end       -- power it first
-            C.click(1)                                          -- then arm it: the enemy group takes over for the target
-        end
+        if I.pressed("slot_off") then slotPowerSet(focus, false) end
+        if I.pressed("slot_retarget") then slotAim(focus) end
     elseif G.panel == "crew" and focus and focus.kind == "crewbox" then
-        if I.pressed("crew_select") then C.click(1, { shift = selectedCrewCount() > 0 }) end
+        if I.pressed("crew_select") then
+            local ok = pcall(function()
+                local crew = E.gui().crewControl.crewBoxes[focus.extra].pCrew
+                toggleSelect(crew)
+            end)
+            if not ok then C.click(1, { shift = selectedCrewCount() > 0 }) end
+        end
         if I.pressed("crew_deselect_all") then clearSelection() end
         if I.pressed("crew_reorder") then C.press(3); G.drag = "alt" end
     else
@@ -632,7 +676,7 @@ function G.update()
     end
     -- global
     if I.pressed("jump") then hotkey("jump", 106) end
-    if I.pressed("pause") then hotkey("pause", E.KEY.SPACE) end
+    if I.pressed("pause") then if not Ensign.setPaused(not Ensign.paused()) then hotkey("pause", E.KEY.SPACE) end end
     if I.pressed("ship_screens") then hotkey("ship_info", 117) end   -- systems / crew / inventory
     if I.pressed("ship_inventory") then hotkey("ship_inv", 105) end    -- straight to the inventory tab
     if I.pressed("escape_menu") then C.key(E.KEY.ESC) end
@@ -670,8 +714,11 @@ function G.update()
     elseif sysFocus then
         hint[#hint + 1] = { "system_power_up", "Power +" }; hint[#hint + 1] = { "system_power_down", "Power -" }; hint[#hint + 1] = { "system_off", "Unpower" }
     elseif slotFocus then
-        hint[#hint + 1] = { "slot_toggle", slotFocusPowered and "Power off (hold to move)" or "Power on (hold to move)" }
-        hint[#hint + 1] = { "slot_off", "Turn off" }; hint[#hint + 1] = { "slot_retarget", "Aim" }
+        local aLabel = "Power on (hold to move)"
+        if slotFocusPowered then aLabel = (focus.extra == 3) and "Aim (hold to move)" or "Power off (hold to move)" end
+        hint[#hint + 1] = { "slot_toggle", aLabel }
+        hint[#hint + 1] = { "slot_off", "Power off" }
+        if focus.extra == 3 and not slotFocusPowered then hint[#hint + 1] = { "slot_retarget", "Power + aim" } end
     elseif G.panel == "crew" then
         hint[#hint + 1] = { "crew_select", nsel > 0 and "Add to selection" or "Select unit" }; hint[#hint + 1] = { "crew_reorder", "Hold to reorder" }
         if nsel > 0 then hint[#hint + 1] = { "crew_deselect_all", "Deselect all" } end

@@ -1,0 +1,77 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+shot game_ship
+log --- force a hostile encounter
+event PIRATE
+wait 2
+dump
+focus choice 0
+press a
+wait 2
+dump
+shot combat_event
+wait_screen game 8
+dump
+log --- enemy panel
+press group_enemy
+wait 0.5
+dump
+shot combat_enemy
+log --- paused: X on the missile, then a raw mouse click on enemy room 0's centre
+power 3 3
+press pause
+wait 0.3
+panel weapons
+wait 0.3
+focus armament 0
+wait 0.3
+press x
+wait 0.6
+dump
+move 988 312
+wait 0.3
+click
+wait 0.8
+dump
+press b
+wait 0.5
+log --- unpaused: X on the missile, A on the room
+press pause
+wait 0.3
+panel weapons
+wait 0.3
+focus armament 0
+wait 0.3
+press x
+wait 0.6
+dump
+press a
+wait 0.8
+dump
+press b
+wait 0.5
+log --- unpaused: X on the laser, A on the room
+panel weapons
+wait 0.3
+focus armament 1
+wait 0.3
+press x
+wait 0.6
+dump
+press a
+wait 0.8
+dump
+end

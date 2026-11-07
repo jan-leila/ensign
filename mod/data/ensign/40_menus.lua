@@ -192,6 +192,14 @@ function M.update(screen)
         if not C.focus and C.mode == "snap" and #cands > 0 then C.snapTo(preferredHit(screen, cands) or N.nearest(C.x, C.y, cands)) end
     end
 
+    if M.pendingSell then
+        local ps = M.pendingSell
+        M.pendingSell = nil
+        Ensign.equipUp(E.center(ps.sell))
+        C.snapTo(ps.item)
+        E.feedback.pulse("select")
+    end
+
     -- analog cursor
     C.updateFree()
 
@@ -290,7 +298,16 @@ function M.update(screen)
             end
         end
     end
-    if screen ~= "starmap" and (I.pressed("menu_alt") or I.pressed("cursor_rclick")) then
+    if screen == "store" and not M.carry and C.focus and C.focus.kind == "equip" and C.focus.label == "item" and I.pressed("menu_alt") then
+        -- sell the focused item: the game's own pick-up, dropped on its sell box
+        local sb = findHit("sell")
+        if sb and Ensign.equipClick(E.center(C.focus)) then
+            -- the game only treats the pick-up as a drag once the pointer has moved, so the
+            -- pointer goes to the sell box now and the release follows on the next frame
+            M.pendingSell = { item = C.focus, sell = sb }
+            C.moveTo(E.center(sb))
+        end
+    elseif screen ~= "starmap" and (I.pressed("menu_alt") or I.pressed("cursor_rclick")) then
         clickFocus(3)
     end
     if M.carry and I.pressed("menu_put_back") then
@@ -337,9 +354,12 @@ function M.update(screen)
                      { "menu_info", "Distress beacon" }, { "menu_back", "Close map" } }
         end
     elseif screen == "store" or screen == "shipscreens" then
-        if M.carry then hint = { { "nav_up", "Move item" }, { "menu_drop", "Place here" }, { "menu_put_back", "Put back" } }
+        if M.carry then
+            hint = { { "nav_up", "Move item" }, { "menu_drop", (C.focus and C.focus.kind == "sell") and "Sell" or "Place here" }, { "menu_put_back", "Put back" } }
         else
-            if C.focus and PICKABLE[C.focus.kind] then hint[2] = { "menu_pickup", "Pick up" }
+            if C.focus and PICKABLE[C.focus.kind] then
+                hint[2] = { "menu_pickup", "Pick up" }
+                if screen == "store" and C.focus.kind == "equip" and C.focus.label == "item" then hint[#hint + 1] = { "menu_alt", "Sell" } end
             elseif screen == "store" and C.focus and C.focus.kind == "store" then hint[2] = { "menu_select", "Buy" } end
             hint[#hint + 1] = { "menu_tab_next", "Next tab" }; hint[#hint + 1] = { "menu_back", "Close" }
         end

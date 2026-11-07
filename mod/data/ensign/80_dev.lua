@@ -50,6 +50,7 @@ local function gameState()
         pcall(function() local hs = ship.hackingSystem; s = s .. " hack[armed=" .. tostring(hs.bArmed) .. " hacking=" .. tostring(hs.bHacking) .. " cur=" .. tostring(hs.currentSystem ~= nil) .. " queued=" .. tostring(hs.queuedSystem ~= nil) .. " blocked=" .. tostring(hs.bBlocked) .. " canHack=" .. tostring(hs.bCanHack) .. " drones=" .. tostring(hs.spendDrone) .. "]" end)
         pcall(function() local ms = ship.mindSystem; s = s .. " mind[armed=" .. tostring(ms.iArmed) .. " queued=" .. tostring(ms.queuedCrew:size()) .. " controlled=" .. tostring(ms.controlledCrew:size()) .. "]" end)
         pcall(function() s = s .. " cloak=" .. tostring(ship.cloakSystem.bTurnedOn) end)
+        pcall(function() s = s .. " scrap=" .. tostring(ship.currentScrap) end)
         pcall(function() local ts = ship.teleportSystem; s = s .. " tele[canSend=" .. tostring(ts.bCanSend) .. " canReceive=" .. tostring(ts.bCanReceive) .. " charge=" .. tostring(ts.chargeLevel) .. " armed=" .. tostring(ts.iArmed) .. "]" end)
         pcall(function()
             local list = Hyperspace.ships.enemy.vCrewList

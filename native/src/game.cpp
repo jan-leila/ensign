@@ -176,6 +176,14 @@ void add_store(std::vector<game::Hit>& out, CommandGui* gui) {
     Equipment& eq = GUI_TAIL(gui, equipScreen);
     if (cur == (FocusWindow*)&eq || cur == nullptr) {
         add_equipment_boxes(out, eq.vEquipmentBoxes, "equip");
+        // the sell box: items dropped on it are sold
+        if (eq.bStoreMode) {
+            const DropBox& sb = eq.sellBox;
+            int w = 0, h = 0;
+            if (sane_ptr(sb.boxImage[0])) { w = sb.boxImage[0]->width_; h = sb.boxImage[0]->height_; }
+            if (w <= 0 || w > 600 || h <= 0 || h > 400) { w = 160; h = 60; }
+            add_rect(out, "sell", 0, sb.position.x, sb.position.y, w, h, cstr(sb.titleText), true, 0);
+        }
     }
     if (st && (cur == (FocusWindow*)st || cur == nullptr)) {
         // sections hold 3 boxes each; page 1 shows sections 0-1, page 2 sections 2-3.

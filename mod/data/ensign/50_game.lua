@@ -103,6 +103,12 @@ local function armedWeapon()
     return nil
 end
 
+local function armedName()
+    local w = armedWeapon()
+    local ok, n = pcall(function() return w.blueprint.name end)
+    return ok and n or nil
+end
+
 local function detectTargeting()
     local gui = E.gui()
     if not gui then return nil end
@@ -277,7 +283,8 @@ local function leaveDetail()
     G.target = nil
 end
 
--- d-pad in detail mode: same room first, then the door on that wall, then the next room
+-- d-pad in detail mode: same room first, then the door on that wall; stepping out of the
+-- room (through a door or straight into the next room) returns to room mode there
 local function detailNav(dir, shipId)
     local cur = G.target
     if not cur then return false end
@@ -333,6 +340,17 @@ local function detailNav(dir, shipId)
         end
     end
     if nxt then
+        if side ~= R then
+            -- leaving the room: back to room mode, on the room we arrive in
+            local r = roomHit(side, shipId)
+            if r then
+                leaveDetail()
+                C.mode = "snap"
+                C.snapTo(r)
+                E.feedback.tick()
+                return true
+            end
+        end
         if nxt.kind == "door" then nxt.roomSide = inRoom(nxt, side) and side or nxt.r1 end
         G.target = nxt
         C.moveTo(E.center(nxt))
@@ -465,7 +483,28 @@ function G.update()
     local onShip = (G.panel == "ship" or G.panel == "enemy") and not G.targeting
 
     if G.restore and E.frame >= G.restore.at then restoreSelection(G.restore.keep); G.restore = nil end
-    if G.drag == "select" and I.released("slot_toggle") then C.release(1); G.drag = nil end
+    -- FTL arms the next untargeted weapon right after a target is set; cancel that so one
+    -- X + A aims exactly one weapon and the frame returns to the weapons group
+    if G.confirmed and E.frame >= G.confirmed.at + 3 then
+        local now = armedName()
+        if now and now ~= G.confirmed.name then C.click(3) end
+        if E.frame >= G.confirmed.at + 6 or not now then G.confirmed = nil end
+    end
+    -- weapon / drone slot A: a tap toggles power (FTL: left click powers up, right click
+    -- powers down; a left click on a powered weapon would arm it instead). Holding A, or
+    -- moving while it is held, picks the slot up so it can be dragged to another slot.
+    if G.slotHold then
+        local h = G.slotHold
+        local moving = I.down("nav_up") or I.down("nav_down") or I.down("nav_left") or I.down("nav_right")
+        if not h.started and I.down("slot_toggle") and (E.time - h.at >= 0.3 or moving) then
+            C.snapTo(h.hit); C.press(1); h.started = true; G.drag = "select"
+        end
+        if I.released("slot_toggle") or not I.down("slot_toggle") then
+            if h.started then C.release(1); G.drag = nil
+            else C.snapTo(h.hit); C.click(h.powered and 3 or 1) end
+            G.slotHold = nil
+        end
+    end
     if G.drag == "alt" and I.released("crew_reorder") then C.release(3); G.drag = nil end
 
     -- groups
@@ -511,6 +550,7 @@ function G.update()
     -- state-specific verbs (each is its own Steam action; several share a button by default)
     local sysFocus = G.panel == "systems" and focus and focus.kind == "sysbox"
     local slotFocus = (G.panel == "weapons" or G.panel == "drones") and focus and focus.kind == "armament"
+    local slotFocusPowered = slotFocus and slotPowered(focus)
     -- free cursor (touchpad / stick): the room under the pointer still takes the room verbs
     local roomUnder = nil
     if not focus and not G.detail and not G.targeting then
@@ -539,11 +579,14 @@ function G.update()
         if I.pressed("beam_point") then
             C.click(1)
             G.beamStage = G.beamStage == 0 and 1 or 0
-            if G.beamStage == 1 then C.mode = "free" end
+            if G.beamStage == 1 then C.mode = "free" else G.confirmed = { name = armedName(), at = E.frame } end
         end
         if I.pressed("target_cancel") then C.click(3) end
     elseif G.targeting then
-        if I.pressed("target_confirm") then C.click(1) end
+        if I.pressed("target_confirm") then
+            C.click(1)
+            G.confirmed = { name = armedName(), at = E.frame }
+        end
         if I.pressed("target_cancel") then C.click(3) end
     elseif onShip and focus and focus.kind == "room" then
         if selectedCrewCount() > 0 then
@@ -566,12 +609,12 @@ function G.update()
             for _ = 1, systemPower(focus.id) do C.click(3) end   -- remove every bar
         end
     elseif slotFocus then
-        if I.pressed("slot_toggle") then C.press(1); G.drag = "select" end   -- tap: toggle; hold: move
+        if I.pressed("slot_toggle") then G.slotHold = { hit = focus, at = E.time, powered = slotPowered(focus), started = false } end
         if I.pressed("slot_off") then C.snapTo(focus); C.click(3) end
         if I.pressed("slot_retarget") then
             C.snapTo(focus)
             if not slotPowered(focus) then C.click(1) end       -- power it first
-            C.click(1)                                          -- then arm / re-target
+            C.click(1)                                          -- then arm it: the enemy group takes over for the target
         end
     elseif G.panel == "crew" and focus and focus.kind == "crewbox" then
         if I.pressed("crew_select") then C.click(1, { shift = selectedCrewCount() > 0 }) end
@@ -627,7 +670,8 @@ function G.update()
     elseif sysFocus then
         hint[#hint + 1] = { "system_power_up", "Power +" }; hint[#hint + 1] = { "system_power_down", "Power -" }; hint[#hint + 1] = { "system_off", "Unpower" }
     elseif slotFocus then
-        hint[#hint + 1] = { "slot_toggle", "On / off (hold to move)" }; hint[#hint + 1] = { "slot_off", "Turn off" }; hint[#hint + 1] = { "slot_retarget", "Re-aim" }
+        hint[#hint + 1] = { "slot_toggle", slotFocusPowered and "Power off (hold to move)" or "Power on (hold to move)" }
+        hint[#hint + 1] = { "slot_off", "Turn off" }; hint[#hint + 1] = { "slot_retarget", "Aim" }
     elseif G.panel == "crew" then
         hint[#hint + 1] = { "crew_select", nsel > 0 and "Add to selection" or "Select unit" }; hint[#hint + 1] = { "crew_reorder", "Hold to reorder" }
         if nsel > 0 then hint[#hint + 1] = { "crew_deselect_all", "Deselect all" } end

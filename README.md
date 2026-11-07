@@ -47,7 +47,10 @@ Switch Pro or generic pad. It is built on the
 * **Feedback.** Rumble on hull hits, shield hits, weapon fire, jumps,
   boarders, crew deaths and low hull; trackpad haptic ticks on Deck / Steam
   Controller; glyph-based button hints in FTL's own style, drawn from the
-  controller you are actually holding.
+  controller you are actually holding. The hints sit in the bottom-right
+  corner; while they are visible the game's subsystem group is raised to make
+  room (its frame is rebuilt at the new spot), and it drops back as soon as
+  you pick up the mouse.
 
 Default bindings and the action list are in [`steam_input/README.md`](steam_input/README.md).
 Install instructions are in [`docs/INSTALL.md`](docs/INSTALL.md).

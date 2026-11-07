@@ -245,7 +245,7 @@ def cmd_pack_ftl(a):
     if not os.path.isdir(a.moddir):
         print("error: %s is not a directory" % a.moddir, file=sys.stderr)
         return 1
-    tmp = a.out + ".tmp"
+    tmp = a.out + ".tmp.%d" % os.getpid()   # parallel headless runs build concurrently
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     n = 0
     with zipfile.ZipFile(tmp, "w") as z:

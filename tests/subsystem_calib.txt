@@ -1,0 +1,34 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+press pause
+wait 0.5
+panel systems
+wait 0.3
+sublift 0
+wait 0.5
+shot sub_orig
+sublift 1 13 32
+wait 0.5
+shot sub_ours
+sublift 36 13 32
+wait 0.5
+shot sub_lifted
+wait 0.5
+focus sysbox 6
+wait 0.6
+shot sub_lifted_hover
+dump
+end

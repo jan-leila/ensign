@@ -21,11 +21,14 @@ function H.visible()
     return E.input.lastDevice == "pad"
 end
 
--- The strip sits just above the subsystem boxes (bottom right), where nothing else is drawn.
-H.HINT_Y = 592
+-- The strip sits at the bottom right. In flight the game's subsystem group is raised
+-- by H.SUBSYSTEM_LIFT while the hints are visible so the two never overlap.
+H.HINT_Y = 720 - 34
 H.LABEL_Y = H.HINT_Y - 26
+H.SUBSYSTEM_LIFT = 36
+H.SUBSYSTEM_FRAME_DX, H.SUBSYSTEM_FRAME_DY = 13, 32  -- frame image offset from the group's anchor (calibrated)
 
--- Draw a row of [glyph] Label pairs, right-aligned above the subsystem row.
+-- Draw a row of [glyph] Label pairs, right-aligned at the bottom of the screen.
 function H.drawHints(hints, y)
     if not hints or #hints == 0 then return end
     colors()

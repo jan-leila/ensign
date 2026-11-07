@@ -38,5 +38,6 @@ int  player_ship_x(); int player_ship_y();      // CommandGui.shipPosition
 bool enemy_ship_origin(int& x, int& y);          // combatControl.position + targetPosition
 bool armament_hover(int systemId, int index);     // ArmamentBox.mouseHover (calibration aid)
 bool sysbox_hover(int systemId);
+void lift_subsystems(int dy, int frameDx, int frameDy);
 std::string dev_probe();
 }

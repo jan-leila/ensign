@@ -32,7 +32,9 @@ wait 0.3
 press x
 wait 1.0
 dump
-log --- slot: A toggles power on, B turns it off, X re-targets (arms)
+log --- slot: A toggles power on, B turns it off, X aims (powers and arms)
+panel weapons
+wait 0.3
 focus armament 1
 wait 0.3
 press a
@@ -47,6 +49,8 @@ dump
 press b
 wait 0.6
 log --- drag: move weapon slot 0 to slot 1 by holding A
+panel weapons
+wait 0.3
 focus armament 0
 wait 0.3
 press a 70

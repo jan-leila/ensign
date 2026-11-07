@@ -175,6 +175,7 @@ int l_shipOrigins(lua_State* L) {
 }
 int l_armamentHover(lua_State* L) { lua_pushboolean(L, game::armament_hover((int)luaL_checkinteger(L, 1), (int)luaL_checkinteger(L, 2))); return 1; }
 int l_sysboxHover(lua_State* L) { lua_pushboolean(L, game::sysbox_hover((int)luaL_checkinteger(L, 1))); return 1; }
+int l_liftSubsystems(lua_State* L) { game::lift_subsystems((int)luaL_checkinteger(L, 1), (int)luaL_optinteger(L, 2, 0), (int)luaL_optinteger(L, 3, 0)); return 0; }
 int l_time(lua_State* L) { lua_pushnumber(L, ensign::now_seconds()); return 1; }
 
 // Developer helpers, enabled only with ENSIGN_DEV=1 (used by the headless test harness).
@@ -217,7 +218,7 @@ const luaL_Reg kFuncs[] = {
     {"mouseMove", l_mouseMove}, {"mouseDown", l_mouseDown}, {"mouseUp", l_mouseUp},
     {"keyDown", l_keyDown}, {"keyUp", l_keyUp}, {"textInput", l_textInput},
     {"screen", l_screen}, {"hitboxes", l_hitboxes}, {"shipOrigins", l_shipOrigins},
-    {"armamentHover", l_armamentHover}, {"sysboxHover", l_sysboxHover}, {"time", l_time},
+    {"armamentHover", l_armamentHover}, {"sysboxHover", l_sysboxHover}, {"liftSubsystems", l_liftSubsystems}, {"time", l_time},
     {"devReadFile", l_devReadFile}, {"devWriteFile", l_devWriteFile}, {"devEnabled", l_devEnabled}, {"devEnv", l_devEnv}, {"devProbe", l_devProbe},
     {nullptr, nullptr}
 };

@@ -35,11 +35,11 @@ wait 0.4
 nav down
 wait 0.4
 dump
-log --- power weapons, arm laser (slot 1), target enemy room
+log --- power weapons: A powers the laser (slot 1), X aims it, A on an enemy room targets
 power 3 2
 press pause
 wait 0.3
-panel systems
+panel weapons
 wait 0.3
 focus armament 1
 wait 0.3
@@ -47,26 +47,29 @@ dump
 press a
 wait 0.6
 dump
+press x
+wait 0.6
+dump
 shot combat_targeting
 press a
 wait 0.8
 dump
-log --- beam: add a beam weapon in slot 2 and aim two points
+log --- beam: add a beam weapon in slot 2, turn the missile off for its power, aim two points
 addweapon BEAM_1 2
 wait 0.5
-panel systems
+panel weapons
 wait 0.3
 focus armament 0
 wait 0.3
-press x
+press b
 wait 0.5
 focus armament 2
 wait 0.3
 press a
 wait 0.6
 dump
-press a
-wait 0.4
+press x
+wait 0.6
 dump
 nav right
 wait 0.3

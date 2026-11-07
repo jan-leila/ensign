@@ -1,3 +1,5 @@
+#include <map>
+#include <climits>
 #include "game.h"
 #include "log.h"
 #include "ftl_structs_elf64.h"
@@ -600,6 +602,61 @@ bool armament_hover(int systemId, int index) {
     ArmamentBox* b = ac.boxes._start[index];
     return b && b->mouseHover;
 }
+// Raise the subsystem group (pilot / sensors / doors / battery, and the frame it sits
+// in) by `dy` pixels so the controller hints fit underneath. The game lays the boxes out
+// once, so the original positions are remembered per box and re-applied every frame;
+// dy = 0 restores the stock layout.
+static std::map<void*, int> g_subBaseY;
+static int g_subFrameBaseX = INT_MIN, g_subFrameBaseY = INT_MIN;
+static int g_subLiftApplied = INT_MIN, g_subFrameDxApplied = 0, g_subFrameDyApplied = 0;
+static GL_Primitive* g_origSubBox = nullptr;   // the game's own frame primitive
+static GL_Primitive* g_ourSubBox = nullptr;    // our relocated copy
+typedef GL_Primitive* (*CreateImagePrimitiveFn)(GL_Texture*, float, float, float, float, float, GL_Color);
+typedef void (*DestroyPrimitiveFn)(GL_Primitive*);
+// frameDx/frameDy: where the frame image sits relative to subSystemPosition (calibrated
+// from screenshots; the game bakes the frame's coordinates into a primitive we cannot read)
+void lift_subsystems(int dy, int frameDx, int frameDy) {
+    CApp* a = app();
+    if (!a || !a->gui) return;
+    SystemControl& sc = a->gui->sysControl;
+    if (g_subFrameBaseY == INT_MIN) { g_subFrameBaseX = sc.subSystemPosition.x; g_subFrameBaseY = sc.subSystemPosition.y; }
+    sc.subSystemPosition.y = g_subFrameBaseY - dy;
+    if (sc.sub_box != g_ourSubBox && sc.sub_box != g_origSubBox) { g_origSubBox = sc.sub_box; g_subLiftApplied = INT_MIN; }  // the game rebuilt it
+    if (dy != g_subLiftApplied || frameDx != g_subFrameDxApplied || frameDy != g_subFrameDyApplied) {
+        static CreateImagePrimitiveFn create = (CreateImagePrimitiveFn)dlsym(RTLD_DEFAULT, "_ZN8CSurface23GL_CreateImagePrimitiveEP10GL_Texturefffff8GL_Color");
+        static DestroyPrimitiveFn destroy = (DestroyPrimitiveFn)dlsym(RTLD_DEFAULT, "_ZN8CSurface19GL_DestroyPrimitiveEP12GL_Primitive");
+        GL_Primitive* old = g_ourSubBox;
+        g_ourSubBox = nullptr;
+        if (dy == 0) {
+            if (g_origSubBox) sc.sub_box = g_origSubBox;
+        } else if (create && g_origSubBox && sane_ptr(g_origSubBox->texture)) {
+            GL_Texture* tex = g_origSubBox->texture;
+            GL_Color white; white.r = white.g = white.b = white.a = 1.0f;
+            GL_Primitive* np = create(tex, (float)(g_subFrameBaseX + frameDx), (float)(g_subFrameBaseY - dy + frameDy),
+                                      (float)tex->width_, (float)tex->height_, 0.0f, white);
+            if (np) { g_ourSubBox = np; sc.sub_box = np; }
+            else ensign::logf("lift_subsystems: could not create the relocated frame");
+        } else if (dy != 0 && g_origSubBox) {
+            ensign::logf("lift_subsystems: cannot rebuild the frame (create=%p); boxes move without it", (void*)create);
+        } else if (dy != 0) {
+            g_subLiftApplied = INT_MIN;   // the game has not built its frame yet (main menu); retry next frame
+            return;
+        }
+        if (old && destroy) destroy(old);
+        g_subLiftApplied = dy; g_subFrameDxApplied = frameDx; g_subFrameDyApplied = frameDy;
+    }
+    size_t n = vsize(sc.sysBoxes);
+    for (size_t i = 0; i < n; i++) {
+        SystemBox* b = sc.sysBoxes._start[i];
+        if (!b || !b->pSystem) continue;
+        int t = b->pSystem->iSystemType;
+        if (t != 6 && t != 7 && t != 8 && t != 12) continue;   // pilot, sensors, doors, battery
+        auto it = g_subBaseY.find(b);
+        if (it == g_subBaseY.end()) it = g_subBaseY.emplace(b, b->location.y).first;
+        b->location.y = it->second - dy;
+    }
+}
+
 bool sysbox_hover(int systemId) {
     CApp* a = app();
     if (!a || !a->gui) return false;
@@ -655,6 +712,25 @@ std::string dev_probe() {
             g->sysControl.position.x, g->sysControl.position.y,
             g->spaceStatus.hitbox.x, g->spaceStatus.hitbox.y, g->spaceStatus.hitbox.w, g->spaceStatus.hitbox.h);
         (void)k; s += buf;
+        {
+            const SystemControl& sc = g->sysControl;
+            k = snprintf(buf, sizeof buf, "sysControl: position=%d,%d subSystemPosition=%d,%d systemPowerPosition=%d,%d sub_spacing=%d sub_box=%p tex=%p",
+                sc.position.x, sc.position.y, sc.subSystemPosition.x, sc.subSystemPosition.y, sc.systemPowerPosition.x, sc.systemPowerPosition.y, sc.sub_spacing,
+                (void*)sc.sub_box, sc.sub_box ? (void*)sc.sub_box->texture : nullptr);
+            s += buf;
+            if (sc.sub_box && sane_ptr(sc.sub_box->texture)) {
+                k = snprintf(buf, sizeof buf, " tex=%dx%d type=%d", sc.sub_box->texture->width_, sc.sub_box->texture->height_, sc.sub_box->type);
+                s += buf;
+            }
+            s += "\n";
+            for (size_t i = 0; i < vsize(sc.sysBoxes); i++) {
+                SystemBox* b = sc.sysBoxes._start[i];
+                if (!b || !b->pSystem) continue;
+                k = snprintf(buf, sizeof buf, "  sysbox %d loc=%d,%d hit=%d,%d,%d,%d top=%d\n", b->pSystem->iSystemType, b->location.x, b->location.y,
+                    b->hitBox.x, b->hitBox.y, b->hitBox.w, b->hitBox.h, b->hitBoxTop);
+                s += buf;
+            }
+        }
         // ship screens internals
         const Upgrades& up = g->upgradeScreen;
         k = snprintf(buf, sizeof buf, "upgrades: open=%d boxes=%zu systemCount=%d\n", (int)is_open(up._base), vsize(up.vUpgradeBoxes), up.systemCount);

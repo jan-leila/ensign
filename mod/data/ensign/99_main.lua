@@ -41,6 +41,14 @@ local function tick()
         E.mouseHidden = hide
     end)
 
+    -- keep the subsystem row clear of the hint strip (restored as soon as the hints hide)
+    pcall(function()
+        local lift = (E.hud.visible() or E.dev.active) and E.hud.SUBSYSTEM_LIFT or 0
+        if E.dev.liftOverride then lift = E.dev.liftOverride end
+        if lift ~= E.lastLift then Ensign.liftSubsystems(lift, E.hud.SUBSYSTEM_FRAME_DX, E.hud.SUBSYSTEM_FRAME_DY); E.lastLift = lift
+        elseif lift ~= 0 then Ensign.liftSubsystems(lift, E.hud.SUBSYSTEM_FRAME_DX, E.hud.SUBSYSTEM_FRAME_DY) end
+    end)
+
     if E.input.connected or E.dev.active then
         if screen == "game" then
             E.game.update()

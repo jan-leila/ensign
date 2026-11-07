@@ -12,13 +12,15 @@ Switch Pro or generic pad. It is built on the
   frame between the things you can act on; the game's own pointer follows it
   (and is hidden), so hover highlights, tooltips and aiming previews behave
   exactly as with a mouse. Pushing past the edge of a group crosses into the
-  neighbouring one (ship ↔ systems below, crew list left, controls above, enemy
-  right), landing on the element in the direction of travel.
+  neighbouring one (ship ↔ the bottom bar below, crew list left, controls above,
+  enemy right), landing on the element in the direction of travel. The bottom
+  bar runs power → weapons → drones → subsystems from left to right.
 * **Groups, rotated with the bumpers** (or jumped to with their own
   actions): *crew* (the portraits), *power* (the reactor boxes), *weapons* and
   *drones* (their slots, empty ones skipped; each only while the ship has that
-  system) and *ship* (rooms; the enemy ship joins the rotation when present and
-  is forced while something is aimed).
+  system), *subsystems* (piloting, sensors, doors, backup battery) and *ship*
+  (rooms; the enemy ship joins the rotation when present and is forced while
+  something is aimed).
 * **Ship.** A on a room opens *detail mode*, which walks the units and doors:
   within a room between its units, out of a room through the door on that
   wall first and then into the next room. A toggles a unit in a persistent

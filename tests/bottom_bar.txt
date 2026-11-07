@@ -1,0 +1,72 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+log --- bottom bar order: systems -> weapons -> (drones) -> subsystems, and back
+panel systems
+wait 0.3
+dump
+nav right
+wait 0.3
+dump
+nav right
+wait 0.3
+dump
+nav right
+wait 0.3
+dump
+nav right
+wait 0.3
+dump
+nav right
+wait 0.3
+dump
+nav right
+wait 0.3
+dump
+nav right
+wait 0.3
+dump
+nav right
+wait 0.3
+dump
+log --- and back left
+nav left
+wait 0.3
+dump
+nav left
+wait 0.3
+dump
+nav left
+wait 0.3
+dump
+nav left
+wait 0.3
+dump
+nav left
+wait 0.3
+dump
+nav left
+wait 0.3
+dump
+nav left
+wait 0.3
+dump
+log --- up from the subsystems lands on the ship
+panel subsystems
+wait 0.3
+nav up
+wait 0.3
+dump
+end

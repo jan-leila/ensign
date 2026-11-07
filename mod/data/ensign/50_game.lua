@@ -39,24 +39,29 @@ G.lastPanel = nil
 G.prevFocus = nil
 G.restore = nil
 
-local PANEL_ORDER = { "crew", "systems", "weapons", "drones", "ship", "enemy" }
+local PANEL_ORDER = { "crew", "systems", "weapons", "drones", "subsystems", "ship", "enemy" }
 local PANEL_LABEL = { ship = "YOUR SHIP", enemy = "ENEMY SHIP", systems = "POWER", weapons = "WEAPONS",
-                      drones = "DRONES", crew = "CREW", top = "CONTROLS" }
+                      drones = "DRONES", subsystems = "SUBSYSTEMS", crew = "CREW", top = "CONTROLS" }
 local PREFERRED = { ship = "room", enemy = "room", systems = "sysbox", weapons = "armament", drones = "armament",
-                    crew = "crewbox", top = "ftl" }
+                    subsystems = "sysbox", crew = "crewbox", top = "ftl" }
 local SYS = { shields = 0, engines = 1, oxygen = 2, weapons = 3, drones = 4, medbay = 5, pilot = 6,
               sensors = 7, doors = 8, teleporter = 9, cloaking = 10, artillery = 11, battery = 12,
               clonebay = 13, mind = 14, hacking = 15 }
+-- the subsystem row (piloting, sensors, doors, backup battery) sits at the far right of
+-- the bottom bar and is its own group
+local SUBSYSTEM = { [SYS.pilot] = true, [SYS.sensors] = true, [SYS.doors] = true, [SYS.battery] = true }
 -- screen layout: moving past the edge of a group crosses into its neighbour
--- (a list = whichever of those groups has the nearest target in that direction)
+-- (a list = whichever of those groups has the nearest target in that direction).
+-- Bottom bar, left to right: systems, weapons, drones, subsystems.
 local NEIGHBOR = {
-    ship    = { down = { "weapons", "drones", "systems" }, up = "top", left = "crew", right = "enemy" },
-    enemy   = { left = "ship", down = { "weapons", "drones", "systems" }, up = "top" },
-    systems = { up = "ship", left = { "drones", "crew" }, right = { "weapons", "drones" } },
-    weapons = { up = "ship", left = { "systems", "drones" } },
-    drones  = { up = "ship", right = { "systems", "weapons" }, down = "systems" },
-    crew    = { right = "ship", down = { "drones", "systems" }, up = "top" },
-    top     = { down = "ship" },
+    ship       = { down = { "systems", "weapons", "drones", "subsystems" }, up = "top", left = "crew", right = "enemy" },
+    enemy      = { left = "ship", down = { "subsystems", "drones", "weapons", "systems" }, up = "top" },
+    systems    = { up = "ship", left = "crew", right = { "weapons", "drones", "subsystems" } },
+    weapons    = { up = "ship", left = "systems", right = { "drones", "subsystems" } },
+    drones     = { up = "ship", left = { "weapons", "systems" }, right = "subsystems" },
+    subsystems = { up = { "enemy", "ship" }, left = { "drones", "weapons", "systems" } },
+    crew       = { right = "ship", down = "systems", up = "top" },
+    top        = { down = "ship" },
 }
 
 
@@ -69,7 +74,8 @@ end
 local function kindFilter(panel)
     if panel == "ship" then return function(h) return h.kind == "room" and h.extra == 0 end
     elseif panel == "enemy" then return function(h) return h.kind == "room" and h.extra == 1 end
-    elseif panel == "systems" then return function(h) return h.kind == "sysbox" end
+    elseif panel == "systems" then return function(h) return h.kind == "sysbox" and not SUBSYSTEM[h.id] end
+    elseif panel == "subsystems" then return function(h) return h.kind == "sysbox" and SUBSYSTEM[h.id] == true end
     elseif panel == "weapons" then
         local w = hasSystem(SYS.weapons)
         return function(h)
@@ -613,7 +619,7 @@ function G.update()
     end
 
     -- state-specific verbs (each is its own Steam action; several share a button by default)
-    local sysFocus = G.panel == "systems" and focus and focus.kind == "sysbox"
+    local sysFocus = (G.panel == "systems" or G.panel == "subsystems") and focus and focus.kind == "sysbox"
     local slotFocus = (G.panel == "weapons" or G.panel == "drones") and focus and focus.kind == "armament"
     local slotFocusPowered = slotFocus and slotPowered(focus)
     -- free cursor (touchpad / stick): the room under the pointer still takes the room verbs

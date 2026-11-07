@@ -191,6 +191,13 @@ function D.update()
         for _, h in ipairs(Ensign.hitboxes()) do if h.kind == "room" and h.extra == 1 and h.id == want then picked = h end end
         if picked then E.cursor.mode = "snap"; E.cursor.snapTo(picked) end
         emit("focus room boarders -> " .. (picked and ("room#" .. picked.id) or "none"))
+    elseif cmd == "focus" and a1 == "location" and (a2 == "current" or a2 == "far") then   -- the beacon we are at / one out of range
+        local pick
+        for _, h in ipairs(E.menus.hits) do
+            if h.kind == "location" and ((a2 == "current" and h.extra % 2 == 1) or (a2 == "far" and h.extra % 2 == 0 and (h.extra // 2) % 2 == 0)) then pick = h; break end
+        end
+        if pick then E.cursor.mode = "snap"; E.cursor.snapTo(pick) end
+        emit("focus location " .. a2 .. " -> " .. (pick and ("location#" .. pick.id .. " extra=" .. pick.extra) or "none"))
     elseif cmd == "focus" and a1 == "room" and a2 == "sys" then   -- first enemy room that holds a system
         local picked
         for _, h in ipairs(Ensign.hitboxes()) do

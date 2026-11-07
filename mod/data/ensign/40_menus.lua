@@ -156,7 +156,7 @@ function M.update(screen)
     local cands = {}
     for _, h in ipairs(filter and N.filterKind(M.hits, filter) or M.hits) do
         local ok = equipVisible(h, crewCount)
-        if ok and h.kind == "location" and not isReachable(h) then ok = false end
+        -- every beacon on the map takes the frame (the game shows its tooltip); only reachable ones jump
         if ok and screen == "starmap" and (h.kind == "button" or h.kind == "close") and h.enabled == false then ok = false end
         if ok then cands[#cands + 1] = h end
     end
@@ -172,7 +172,7 @@ function M.update(screen)
             -- start on the reachable beacon nearest to the one we are at
             local here = currentBeacon(M.hits)
             local hx, hy = here and E.center(here) or C.x, here and select(2, E.center(here)) or C.y
-            local first = N.nearest(hx, hy, cands)
+            local first = N.nearest(hx, hy, cands, isReachable) or N.nearest(hx, hy, cands)
             if first then C.mode = "snap"; C.snapTo(first) end
         end
     else
@@ -246,6 +246,8 @@ function M.update(screen)
     elseif not M.carry and (I.pressed("menu_select") or I.pressed("cursor_click")) then
         if screen == "rename" or screen == "input" then
             C.key(E.KEY.RETURN)
+        elseif screen == "starmap" and C.focus and C.focus.kind == "location" and not isReachable(C.focus) then -- luacheck: ignore 542
+            -- the current beacon or one out of range: nothing to do (the hint says so)
         elseif screen == "starmap" and C.focus and C.focus.kind == "location" and M.lastLocation and E.sameHit(C.focus, M.lastLocation) then
             -- second press on the same beacon: jump
             local jb = findHit("button", 1)
@@ -320,7 +322,12 @@ function M.update(screen)
         if findHit("sector") then
             hint = { { "nav_up", "Pick sector" }, { "menu_select", "Choose" }, { "menu_back", "Cancel" } }
         else
-            hint = { { "nav_up", "Pick beacon" }, { "menu_select", "Jump there" }, { "menu_alt", "Wait here" },
+            local f = C.focus
+            local sel = "Jump there"
+            if f and f.kind == "location" then
+                if isCurrent(f) then sel = "You are here" elseif not isReachable(f) then sel = "Out of range" end
+            elseif f and (f.kind == "button" or f.kind == "close") then sel = "Select" end
+            hint = { { "nav_up", "Pick beacon" }, { "menu_select", sel }, { "menu_alt", "Wait here" },
                      { "menu_info", "Distress beacon" }, { "menu_back", "Close map" } }
         end
     elseif screen == "store" or screen == "shipscreens" then

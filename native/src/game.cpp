@@ -436,7 +436,14 @@ void add_starmap(std::vector<game::Hit>& out, StarMap& sm) {
             for (size_t j = 0; j < nc; j++) if (sm.currentLoc->connectedLocations._start[j] == loc) reachable = true;
         }
         int extra = (loc == sm.currentLoc ? 1 : 0) | (reachable ? 2 : 0) | (loc->known ? 4 : 0) | (loc->visited ? 8 : 0) | (loc->beacon ? 16 : 0);
-        add_rect(out, "location", (int)i, x, y, 20, 20, "", loc == sm.currentLoc || reachable || sm.bMapRevealed, extra);
+        // label: the indices of the beacons this one is linked to (the routes drawn on the map)
+        std::string links;
+        size_t nl = vsize(loc->connectedLocations);
+        for (size_t j = 0; j < nl; j++) {
+            Location* other = loc->connectedLocations._start[j];
+            for (size_t k = 0; k < n; k++) if (sm.locations._start[k] == other) { if (!links.empty()) links += ","; links += std::to_string(k); break; }
+        }
+        add_rect(out, "location", (int)i, x, y, 20, 20, links, loc == sm.currentLoc || reachable || sm.bMapRevealed, extra);
     }
     TS("buttons");
     // the map's buttons keep window-relative hitboxes; the window sits at sm.position

@@ -1,0 +1,37 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+log --- wait for the FTL drive then open the map
+press jump
+wait 1
+dump
+log --- pointing in four directions only offers beacons linked to the frame's beacon
+stick 1 0 20
+wait 0.15
+dump
+wait 0.4
+stick 0 1 20
+wait 0.15
+dump
+wait 0.4
+stick -1 0 20
+wait 0.15
+dump
+wait 0.4
+stick 0 -1 20
+wait 0.15
+dump
+wait 0.4
+end

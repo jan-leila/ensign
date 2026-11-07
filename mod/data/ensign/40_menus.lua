@@ -3,8 +3,8 @@
 -- enumerates the clickable rectangles; this module navigates and clicks them.
 --
 -- Star map: only the beacons you can actually jump to are targets, plus the map's own
--- buttons. The d-pad steps between them. The stick points: while it is held, the beacon
--- in that direction from the frame is highlighted; letting the stick snap back (a flick)
+-- buttons. The d-pad steps between them. The stick points along the routes: while it is
+-- held, the beacon linked to the frame's beacon in that direction is highlighted; letting the stick snap back (a flick)
 -- moves the frame there, so the next flick carries on from the new beacon, while easing
 -- it back slowly just drops the highlight. The sector list works the same way.
 -- A jumps, X waits, Y toggles the distress beacon, B closes the map.
@@ -142,6 +142,12 @@ end
 -- star map helpers: bit 1 = current beacon, bit 2 = reachable from it
 local function isCurrent(h) return h.kind == "location" and h.extra % 2 == 1 end
 local function isReachable(h) return h.kind == "location" and (h.extra // 2) % 2 == 1 end
+-- a beacon's label lists the beacons it is linked to by a route
+local function linkedTo(from, h)
+    if not (from and from.kind == "location" and h.kind == "location") then return true end
+    for idx in (from.label or ""):gmatch("%d+") do if tonumber(idx) == h.id then return true end end
+    return false
+end
 local function currentBeacon(hits)
     for _, h in ipairs(hits) do if isCurrent(h) then return h end end
     return nil
@@ -200,7 +206,7 @@ function M.update(screen)
             local from = stickAnchor
             local fx, fy = from and E.center(from) or C.x, from and select(2, E.center(from)) or C.y
             local pick = N.pickAngle(fx, fy, cands, math.atan(sy, sx), math.rad(55),
-                                     function(h) return (h.kind == "location" or h.kind == "sector") and not (from and E.sameHit(h, from)) end)
+                                     function(h) return (h.kind == "location" or h.kind == "sector") and not (from and E.sameHit(h, from)) and linkedTo(from, h) end)
             if pick and not (M.stickCandidate and E.sameHit(pick, M.stickCandidate)) then E.feedback.tick() end
             M.stickCandidate = pick
             stickDrives = true

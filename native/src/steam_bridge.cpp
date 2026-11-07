@@ -111,6 +111,32 @@ bool try_init() {
     return true;
 }
 
+// Does this controller currently have any action pressed / any stick deflected?
+static bool has_input(InputHandle_t h) {
+    for (auto& kv : g_digHandles) {
+        if (!kv.second) continue;
+        InputDigitalActionData_t d = g_in->GetDigitalActionData(h, kv.second);
+        if (d.bActive && d.bState) return true;
+    }
+    for (auto& kv : g_anaHandles) {
+        if (!kv.second) continue;
+        InputAnalogActionData_t a = g_in->GetAnalogActionData(h, kv.second);
+        if (a.bActive && (a.x > 0.2f || a.x < -0.2f || a.y > 0.2f || a.y < -0.2f)) return true;
+    }
+    return false;
+}
+
+static void adopt_controller(InputHandle_t h, const char* why) {
+    g_handle = h;
+    g_type = g_in->GetInputTypeForHandle(g_handle);
+    ensign::logf("controller %s: handle=%llu type=%d (%s) set=%s", why, (unsigned long long)g_handle, g_type, controller_type_name(), g_currentSet.c_str());
+    g_originLogBudget = 12;
+    if (g_currentSetHandle) g_in->ActivateActionSet(g_handle, g_currentSetHandle);
+}
+
+// Follow the controller the player is actually using. Steam may report several
+// (a stray virtual pad, a second player's pad, a dock): keep the current one
+// while it is connected, but switch to any other that shows input.
 static void pick_controller() {
     InputHandle_t handles[STEAM_INPUT_MAX_COUNT];
     int n = g_in->GetConnectedControllers(handles);
@@ -119,16 +145,15 @@ static void pick_controller() {
         g_handle = 0; g_type = k_ESteamInputType_Unknown;
         return;
     }
-    // keep the current one if still present, else take the first
     bool keep = false;
     for (int i = 0; i < n; i++) if (handles[i] == g_handle) keep = true;
-    if (!keep) {
-        g_handle = handles[0];
-        g_type = g_in->GetInputTypeForHandle(g_handle);
-        ensign::logf("controller connected: handle=%llu type=%d (%s) set=%s", (unsigned long long)g_handle, g_type, controller_type_name(), g_currentSet.c_str());
-        g_originLogBudget = 12;
-        if (g_currentSetHandle) g_in->ActivateActionSet(g_handle, g_currentSetHandle);
-    }
+    if (!keep) { adopt_controller(handles[0], "connected"); }
+    if (n < 2) return;
+    // keep our set active on the others too, otherwise their actions never report
+    for (int i = 0; i < n; i++)
+        if (handles[i] != g_handle && g_currentSetHandle) g_in->ActivateActionSet(handles[i], g_currentSetHandle);
+    for (int i = 0; i < n; i++)
+        if (handles[i] != g_handle && has_input(handles[i])) { adopt_controller(handles[i], "switched to active"); break; }
 }
 
 void poll() {

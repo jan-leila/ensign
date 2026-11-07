@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Virtual Xbox 360 pad via uinput; loops a button/stick sequence until killed."""
+"""Virtual Xbox 360 pad via uinput; loops a button/stick sequence for --seconds N (default 120) or until killed."""
 import time
 from evdev import UInput, AbsInfo, ecodes as e
 
@@ -31,9 +31,14 @@ def axes(pairs, ms):
 
 import sys
 SAFE = "--safe" in sys.argv   # never press A/Start: safe to run against the real game at its main menu
+# Hard time limit (default 120 s): a forgotten virtual pad steals the controller slot from the real one.
+LIMIT = 120.0
+for i, a in enumerate(sys.argv):
+    if a == "--seconds" and i + 1 < len(sys.argv): LIMIT = float(sys.argv[i + 1])
+deadline = time.monotonic() + LIMIT
 try:
     time.sleep(3)  # let Steam pick the device up
-    while True:
+    while time.monotonic() < deadline:
         if not SAFE: key(e.BTN_SOUTH, 200)
         key(e.BTN_EAST, 200)
         axes([(e.ABS_HAT0Y, -1)], 200)               # dpad up

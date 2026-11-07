@@ -13,14 +13,14 @@ wait 1
 press_if event a
 wait_screen game 6
 fakepad xbox
-press view
+press pause
 wait 0.4
 panel ship
 wait 0.3
-log --- room 10: Y -> unit, right -> right-wall door 10, down -> door 11 on the same wall, down again
+log --- room 10: X -> unit, right -> right-wall door 10, down -> door 11 on the same wall, down again
 focus room 10
 wait 0.3
-press y
+press room_detail
 wait 0.4
 nav right
 wait 0.4

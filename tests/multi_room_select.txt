@@ -13,7 +13,7 @@ wait 1
 press_if event a
 wait_screen game 6
 fakepad xbox
-press view
+press pause
 wait 0.4
 panel ship
 wait 0.3
@@ -40,7 +40,7 @@ focus room 6
 wait 0.3
 press a
 wait 0.4
-press view
+press pause
 wait 7
 dump
 end

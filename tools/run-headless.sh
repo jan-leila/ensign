@@ -121,7 +121,7 @@ done
 
 # ---- run --------------------------------------------------------------------
 step "Running for ${SECONDS_RUN}s ($([ $WITH_ENSIGN = 1 ] && echo 'ensign+hyperspace' || echo 'hyperspace only'))"
-rm -f "$DATA"/FTL.log "$DATA"/FTL_HS.log "$DATA"/zhl.log "$DATA"/ensign.log
+rm -f "$DATA"/FTL.log "$DATA"/FTL_HS.log "$DATA"/zhl.log "$DATA"/ensign.log "$DATA"/ensign_test_out.txt
 envs=(LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe ENSIGN_DEV=1 SDL_AUDIODRIVER=dummy
       XDG_DATA_HOME="$XDG" ENSIGN_REPLICA_RUN=1 ${ENSIGN_TRACE:+ENSIGN_TRACE=1})
 [ -n "$SCRIPT" ] && envs+=(ENSIGN_TEST_SCRIPT="$SCRIPT")
@@ -140,7 +140,7 @@ ELAPSED=$(( $(date +%s) - START ))
 pkill -f "$REPLICA/data/FTL.amd64" 2>/dev/null || true
 
 # ---- collect ----------------------------------------------------------------
-for f in FTL.log FTL_HS.log zhl.log ensign.log; do [ -f "$DATA/$f" ] && cp "$DATA/$f" "$OUT/"; done
+for f in FTL.log FTL_HS.log zhl.log ensign.log ensign_test_out.txt; do [ -f "$DATA/$f" ] && cp "$DATA/$f" "$OUT/"; done
 cp "$REPLICA/stdout.txt" "$OUT/"
 [ -d "$XDG/FasterThanLight" ] && ls -la "$XDG/FasterThanLight" > "$OUT/xdg-listing.txt"
 

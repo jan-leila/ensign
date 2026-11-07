@@ -37,7 +37,7 @@ wait 0.4
 dump
 log --- power weapons, arm laser (slot 1), target enemy room
 power 3 2
-press view
+press pause
 wait 0.3
 panel systems
 wait 0.3

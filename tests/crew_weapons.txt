@@ -12,7 +12,7 @@ press_if event a
 wait 1
 press_if event a
 wait_screen game 6
-press view
+press pause
 wait 0.5
 log --- crew panel: select first crew
 press rb
@@ -41,11 +41,11 @@ wait 0.4
 press a
 wait 0.5
 dump
-press view
+press pause
 wait 4
 dump
 log --- weapons: arm first weapon
-press view
+press pause
 wait 0.3
 press rb
 wait 0.3

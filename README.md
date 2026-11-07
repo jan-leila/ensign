@@ -14,16 +14,18 @@ Switch Pro or generic pad. It is built on the
   exactly as with a mouse. Pushing past the edge of a group crosses into the
   neighbouring one (ship ↔ systems below, crew list left, controls above, enemy
   right), landing on the element in the direction of travel.
-* **Three groups, rotated with the bumpers** (or jumped to with their own
-  actions): *crew* (the portraits), *systems* (reactor boxes plus weapon and
-  drone slots, empty slots skipped) and *ship* (rooms; the enemy ship joins the
-  rotation when present and is forced while something is aimed).
+* **Groups, rotated with the bumpers** (or jumped to with their own
+  actions): *crew* (the portraits), *power* (the reactor boxes), *weapons* and
+  *drones* (their slots, empty ones skipped; each only while the ship has that
+  system) and *ship* (rooms; the enemy ship joins the rotation when present and
+  is forced while something is aimed).
 * **Ship.** A on a room opens *detail mode*, which walks the units and doors:
   within a room between its units, out of a room through the door on that
   wall first and then into the next room. A toggles a unit in a persistent
   multi-selection or opens/closes a door; B returns to room mode. With units
   selected, A on a room sends them, B deselects all, X reopens detail mode to
-  add more. Y is always the FTL jump.
+  add more. Pointing freely with the touchpad or right stick works too: A over
+  a room sends the selection there or opens that room. Y is always the FTL jump.
 * **Systems.** On a reactor box A adds power, B removes it, X turns it off
   (the triggers add/remove too). On a weapon or drone slot A toggles it (hold
   A and move to re-order), B turns it off, X re-targets it; aiming then locks
@@ -33,9 +35,15 @@ Switch Pro or generic pad. It is built on the
   `system_off`, `slot_retarget`, ...), all on the natural buttons by default,
   so any single one can be rebound without moving the others.
 * **Screens**: Start opens the ship screens (systems / crew / inventory,
-  bumpers switch tabs); A picks an item up and A drops it, B puts it back.
-  Pause, the star map, event choices, the store, options, the hangar and the
-  main menu use the same frame.
+  bumpers switch tabs) and View goes straight to the inventory; A picks an
+  item or crew member up and A drops it, B puts it back. Pause sits on a back
+  button (Deck R5 / Steam Controller right grip; left stick click on pads
+  without them). Event choices, the store, options, the hangar and the main
+  menu use the same frame.
+* **Star map.** Only beacons you can jump to are targets: the d-pad steps
+  between them and the stick points at them (the beacon in the stick's
+  direction from your current one lights up). A jumps, X waits a turn, Y
+  toggles the distress beacon, B closes the map.
 * **Feedback.** Rumble on hull hits, shield hits, weapon fire, jumps,
   boarders, crew deaths and low hull; trackpad haptic ticks on Deck / Steam
   Controller; glyph-based button hints in FTL's own style, drawn from the

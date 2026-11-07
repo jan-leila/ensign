@@ -22,7 +22,7 @@
 - Rebinding one verb in Steam's configurator edits only its own `binding` line; the other verbs on that physical input stay.
 - Steam's normalised copy of a config appends ", , " to binding strings and adds creator/timestamp/localization fields; the repo files omit those (as the earlier accepted files did). The configs carry the `actions` block (with `legacy_set`) but no `localization` block; localization lives in the manifest only.
 - Trigger groups bind only the matching verb: LT group = `system_power_down`, RT group = `system_power_up` (Full_Press on `edge`); the same verbs are also bound on B / A.
-- `pause` = `button_escape` (View/Back), `ship_screens` = `button_menu` (Start/Menu): swapped relative to the first layout on purpose.
+- `ship_inventory` = `button_escape` (View/Back), `ship_screens` = `button_menu` (Start/Menu). `pause` lives on a back button (Deck R5, Steam Controller right grip) and on the left stick click on pads without back buttons; in the Menus set both View and Start are `menu_escape`.
 - Right stick click is unbound on gamepads and the Deck (the groups keep an empty `inputs` block); `cursor_click` / `menu_click` use the right pad click on Deck and Steam Controller only.
 - Binding descriptions are the action titles; titles must not contain commas (the binding string is comma-delimited; the generator asserts this).
 - Files are generated: `python3 tools/gen-steam-input.py`. Group ids are assigned sequentially (InGame then Menus); presets reference them.

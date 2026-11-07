@@ -13,7 +13,7 @@ wait 1
 press_if event a
 wait_screen game 6
 fakepad xbox
-press view
+press pause
 wait 0.4
 log --- systems: B removes shield power, A adds it back, X turns engines off
 panel systems
@@ -59,7 +59,7 @@ focus sysbox 1
 wait 0.3
 press a
 wait 0.4
-press view
+press pause
 wait 30
 press y
 wait_screen starmap 8

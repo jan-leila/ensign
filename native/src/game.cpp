@@ -121,6 +121,7 @@ void add_equipment_boxes(std::vector<game::Hit>& out, const std__vector_14Equipm
         if (!b) continue;
         const Globals__Rect& r = b->hitBox;
         bool empty = !b->item.pWeapon && !b->item.pDrone && !b->item.pCrew && !b->item.augment;
+        if (b->slot < 0) continue;
         add_rect(out, kind, (int)i, r.x, r.y, r.w, r.h, empty ? "empty" : "item", !b->bBlocked, b->slot);
     }
 }
@@ -175,11 +176,17 @@ void add_store(std::vector<game::Hit>& out, CommandGui* gui) {
         add_equipment_boxes(out, eq.vEquipmentBoxes, "equip");
     }
     if (st && (cur == (FocusWindow*)st || cur == nullptr)) {
+        // sections hold 3 boxes each; page 1 shows sections 0-1, page 2 sections 2-3.
+        // The resource / repair boxes follow the section boxes and are always visible.
         size_t n = vsize(st->vStoreBoxes);
+        int sections = st->sectionCount;
+        int firstSection = st->bShowPage2 ? 2 : 0;
         for (size_t i = 0; i < n; i++) {
             StoreBox* b = st->vStoreBoxes._start[i];
             if (!b) continue;
-            add_button(out, b->button._base, "store", (int)i, "", b->count);
+            int section = (sections > 0 && (int)i < sections * 3) ? (int)i / 3 : -1;
+            if (section >= 0 && (section < firstSection || section >= firstSection + 2)) continue;
+            add_button(out, b->button._base, "store", (int)i, section >= 0 ? "stock" : "resource", b->count);
         }
         n = vsize(st->vItemBoxes);
         for (size_t i = 0; i < n; i++) {
@@ -187,11 +194,11 @@ void add_store(std::vector<game::Hit>& out, CommandGui* gui) {
             if (!b) continue;
             add_button(out, b->button._base, "storeitem", (int)i, "", b->count);
         }
-        add_button(out, st->page1._base, "tab", 10, "page1");
-        add_button(out, st->page2._base, "tab", 11, "page2");
+        if (sections > 2) {   // the page buttons only exist with more than two sections
+            add_button(out, st->page1._base, "tab", 10, "page1");
+            add_button(out, st->page2._base, "tab", 11, "page2");
+        }
         add_button(out, st->exitButton._base, "close", 201);
-        // the ship's own equipment is shown alongside the store
-        add_equipment_boxes(out, eq.vEquipmentBoxes, "equip");
     }
 }
 
@@ -419,11 +426,15 @@ void add_starmap(std::vector<game::Hit>& out, StarMap& sm) {
         add_rect(out, "location", (int)i, x, y, 20, 20, "", loc == sm.currentLoc || reachable || sm.bMapRevealed, extra);
     }
     TS("buttons");
-    add_textbutton(out, sm.jumpButton, "button", 1);
-    add_textbutton(out, sm.waitButton, "button", 2);
-    add_textbutton(out, sm.distressButton._base, "button", 3);
-    add_textbutton(out, sm.endButton, "button", 4);
-    add_textbutton(out, sm.closeButton, "close", 200);
+    // the map's buttons keep window-relative hitboxes; the window sits at sm.position
+    auto add_map_button = [&](const GenericButton& b, const char* kind, int id) {
+        add_rect(out, kind, id, b.hitbox.x + sm.position.x, b.hitbox.y + sm.position.y, b.hitbox.w, b.hitbox.h, "", b.bActive, 0);
+    };
+    add_map_button(sm.jumpButton._base, "button", 1);
+    add_map_button(sm.waitButton._base, "button", 2);
+    add_map_button(sm.distressButton._base._base, "button", 3);
+    add_map_button(sm.endButton._base, "button", 4);
+    add_map_button(sm.closeButton._base, "close", 200);
 }
 
 } // namespace
@@ -662,6 +673,29 @@ std::string dev_probe() {
             vsize(g->shipScreens.windows) > 0 ? (void*)g->shipScreens.windows._start[0] : nullptr, vsize(g->shipScreens.windows) > 1 ? (void*)g->shipScreens.windows._start[1] : nullptr, vsize(g->shipScreens.windows) > 2 ? (void*)g->shipScreens.windows._start[2] : nullptr,
             (void*)&g->equipScreen, (void*)&g->upgradeScreen, (void*)&g->crewScreen);
         s += buf;
+        {
+            Store* st = nullptr;
+            if (store_window(g, st) && st) {
+                k = snprintf(buf, sizeof buf, "store: boxes=%zu items=%zu sectionCount=%d types=%d,%d,%d,%d bShowPage2=%d page1.active=%d page2.active=%d\n",
+                    vsize(st->vStoreBoxes), vsize(st->vItemBoxes), st->sectionCount, st->types[0], st->types[1], st->types[2], st->types[3],
+                    (int)st->bShowPage2, (int)st->page1._base.bActive, (int)st->page2._base.bActive);
+                s += buf;
+                dump("  store.sectionCount..", &st->sectionCount, 48);
+            }
+        }
+        {
+            CrewManifest& cm = GUI_TAIL(g, crewScreen);
+            for (size_t i = 0; i < vsize(cm.crewBoxes) && i < 4; i++) {
+                CrewEquipBox* b = cm.crewBoxes._start[i];
+                if (!sane_ptr(b)) continue;
+                k = snprintf(buf, sizeof buf, "  cb%zu hit=%d,%d,%d,%d slot=%d item=%p,%p,%p,%p dead=%d showDel=%d showRen=%d ship=%p\n", i,
+                    b->_base.hitBox.x, b->_base.hitBox.y, b->_base.hitBox.w, b->_base.hitBox.h, b->_base.slot,
+                    (void*)b->_base.item.pWeapon, (void*)b->_base.item.pDrone, (void*)b->_base.item.pCrew, (void*)b->_base.item.augment,
+                    (int)b->bDead, (int)b->bShowDelete, (int)b->bShowRename, (void*)b->ship);
+                s += buf;
+                dump("  cb.item+", &b->_base.item, 64);
+            }
+        }
         for (size_t i = 0; i < vsize(g->equipScreen.vEquipmentBoxes) && i < 4; i++) {
             EquipmentBox* b = g->equipScreen.vEquipmentBoxes._start[i];
             if (!b) continue;

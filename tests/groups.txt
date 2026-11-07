@@ -1,0 +1,77 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+press pause
+wait 0.3
+log --- rotation: crew -> power -> weapons -> ship (no drone system on the Kestrel)
+panel crew
+wait 0.3
+dump
+press rb
+wait 0.3
+dump
+press rb
+wait 0.3
+dump
+press rb
+wait 0.3
+dump
+press lb
+wait 0.3
+dump
+log --- direct jumps
+press group_weapons
+wait 0.3
+dump
+press group_systems
+wait 0.3
+dump
+press group_drones
+wait 0.3
+dump
+log --- edges: ship down -> weapons; weapons left -> power; power right -> weapons; crew right -> ship (not the position buttons)
+panel ship
+wait 0.3
+focus room 9
+wait 0.3
+nav down
+wait 0.4
+dump
+nav left
+wait 0.4
+nav left
+wait 0.4
+nav left
+wait 0.4
+dump
+nav right
+wait 0.4
+nav right
+wait 0.4
+nav right
+wait 0.4
+nav right
+wait 0.4
+nav right
+wait 0.4
+dump
+panel crew
+wait 0.3
+focus crewbox 2
+wait 0.3
+nav right
+wait 0.4
+dump
+end

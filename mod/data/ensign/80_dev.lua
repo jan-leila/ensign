@@ -5,6 +5,7 @@
 --   wait <seconds>          expect_screen <name>     press <action> [ticks]
 --   nav <up|down|left|right> move <x> <y>           click [button]
 --   key <sdlkey>            dump                     log <text>
+--   stick <x> <y>           (left stick vector for a few ticks; y up)
 --   set <panel>             fail <text>              end
 local E = ENSIGN
 local D = {}
@@ -92,6 +93,7 @@ function D.update()
         -- press_if <screen> <action>: press only while that screen is showing
         if Ensign.screen() == a1 then E.input.virtualPress(a2, 2); emit("press_if " .. a1 .. " -> " .. a2) end
     elseif cmd == "nav" then E.input.virtualPress("nav_" .. a1, 2); emit("nav " .. a1)
+    elseif cmd == "stick" then E.input.virtualAxis(tonumber(a1) or 0, tonumber(a2) or 0, 3); emit("stick " .. rest)
     elseif cmd == "move" then E.cursor.mode = "free"; E.cursor.focus = nil; E.cursor.moveTo(tonumber(a1) or 0, tonumber(a2) or 0); emit("move " .. rest)
     elseif cmd == "click" then E.cursor.click(tonumber(a1) or 1); emit("click " .. (a1 or "1"))
     elseif cmd == "key" then E.cursor.key(tonumber(a1)); emit("key " .. a1)

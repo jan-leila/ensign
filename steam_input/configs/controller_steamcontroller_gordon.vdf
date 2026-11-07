@@ -34,6 +34,8 @@
 				"group_next"		"#Action_group_next"
 				"group_crew"		"#Action_group_crew"
 				"group_systems"		"#Action_group_systems"
+				"group_weapons"		"#Action_group_weapons"
+				"group_drones"		"#Action_group_drones"
 				"group_ship"		"#Action_group_ship"
 				"group_enemy"		"#Action_group_enemy"
 				"room_open"		"#Action_room_open"
@@ -60,6 +62,7 @@
 				"jump"		"#Action_jump"
 				"pause"		"#Action_pause"
 				"ship_screens"		"#Action_ship_screens"
+				"ship_inventory"		"#Action_ship_inventory"
 				"escape_menu"		"#Action_escape_menu"
 				"autofire"		"#Action_autofire"
 				"crew_all"		"#Action_crew_all"
@@ -270,7 +273,7 @@
 					{
 						"bindings"
 						{
-							"binding"		"game_action InGame pause, Pause"
+							"binding"		"game_action InGame ship_inventory, Open inventory"
 						}
 					}
 				}
@@ -309,7 +312,7 @@
 					{
 						"bindings"
 						{
-							"binding"		"game_action InGame doors_close, Close all doors"
+							"binding"		"game_action InGame pause, Pause"
 						}
 					}
 				}
@@ -529,7 +532,7 @@
 					{
 						"bindings"
 						{
-							"binding"		"game_action Menus menu_pause, Menu pause"
+							"binding"		"game_action Menus menu_escape, Menu escape"
 						}
 					}
 				}
@@ -543,6 +546,19 @@
 						"bindings"
 						{
 							"binding"		"game_action Menus menu_escape, Menu escape"
+						}
+					}
+				}
+			}
+			"button_back_right"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_pause, Menu pause"
 						}
 					}
 				}

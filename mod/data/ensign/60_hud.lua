@@ -21,7 +21,11 @@ function H.visible()
     return E.input.lastDevice == "pad"
 end
 
--- Draw a row of [glyph] Label pairs, right-aligned at the bottom of the screen.
+-- The strip sits just above the subsystem boxes (bottom right), where nothing else is drawn.
+H.HINT_Y = 592
+H.LABEL_Y = H.HINT_Y - 26
+
+-- Draw a row of [glyph] Label pairs, right-aligned above the subsystem row.
 function H.drawHints(hints, y)
     if not hints or #hints == 0 then return end
     colors()
@@ -40,7 +44,7 @@ function H.drawHints(hints, y)
         total = total + w
     end
     local x = 1280 - 8 - total
-    y = y or 720 - 34
+    y = y or H.HINT_Y
     Graphics.CSurface.GL_DrawRect(x - 6, y - 4, total + 12, 30, colBg)
     for _, it in ipairs(items) do
         local cx = x
@@ -57,7 +61,7 @@ function H.drawPanelLabel(text)
     if not text or text == "" then return end
     colors()
     local w = Graphics.freetype.easy_measureWidth(FONT_LABEL, text) + 16
-    local x, y = 1280 - 8 - w, 720 - 60
+    local x, y = 1280 - 8 - w, H.LABEL_Y
     Graphics.CSurface.GL_DrawRect(x, y, w, 22, colBg)
     Graphics.freetype.easy_print(FONT_LABEL, x + 8, y + 3, text)
 end

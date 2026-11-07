@@ -1,0 +1,47 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+press pause
+wait 0.3
+log --- open the ship screens on the crew tab, pick up crew 0, move right, place it
+press ship_screens
+wait 1
+press rb
+wait 0.6
+probe
+dump
+shot crew_tab
+press a
+wait 0.4
+dump
+nav right
+wait 0.4
+dump
+press a
+wait 0.6
+dump
+shot crew_reordered
+press b
+wait 1
+dump
+log --- View opens the inventory straight away
+press ship_inventory
+wait 1
+dump
+shot inventory_direct
+press b
+wait 1
+dump
+end

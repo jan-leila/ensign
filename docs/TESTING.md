@@ -30,4 +30,7 @@ Notes:
   A, B, dpad up, left stick, right stick. Steam only routes it through Steam Input
   if Steam Input is enabled for Xbox controllers (Steam > Settings > Controller >
   "Enable Steam Input for Xbox controllers") or for FTL (Properties > Controller >
-  Enable Steam Input).
+  Enable Steam Input). The pad stops by itself after 120 s (`--seconds N` to change):
+  a forgotten virtual pad counts as a connected controller, and although the shim
+  now follows whichever controller shows input, a stray one is still confusing.
+  `pgrep -af _virtual_pad` shows leftovers.

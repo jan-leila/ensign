@@ -13,7 +13,7 @@ wait 1
 press_if event a
 wait_screen game 6
 fakepad xbox
-press view
+press pause
 wait 0.3
 log --- ship screens via the top bar
 panel top
@@ -44,7 +44,7 @@ press b
 wait 1
 dump
 log --- options via the pause menu
-press start
+press escape_menu
 wait 1
 focus button 4
 wait 0.3

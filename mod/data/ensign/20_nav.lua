@@ -36,6 +36,28 @@ function N.pick(from, candidates, dir, filter, strict)
     return best
 end
 
+-- Candidate whose bearing from (x, y) is closest to the stick angle (radians, 0 = right,
+-- counter-clockwise, y up on screen). Rejects anything more than `maxDiff` off.
+function N.pickAngle(x, y, candidates, angle, maxDiff, filter)
+    local best, bestScore = nil, math.huge
+    for _, h in ipairs(candidates) do
+        if not filter or filter(h) then
+            local cx, cy = E.center(h)
+            local dx, dy = cx - x, y - cy
+            local dist = math.sqrt(dx * dx + dy * dy)
+            if dist > 1 then
+                local diff = math.abs(math.atan(dy, dx) - angle)
+                if diff > math.pi then diff = 2 * math.pi - diff end
+                if diff <= maxDiff then
+                    local score = diff * 200 + dist * 0.15   -- bearing first, then distance
+                    if score < bestScore then best, bestScore = h, score end
+                end
+            end
+        end
+    end
+    return best
+end
+
 -- Nearest candidate to a point (used when switching panels or leaving free-cursor mode).
 function N.nearest(x, y, candidates, filter)
     local best, bestD = nil, math.huge

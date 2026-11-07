@@ -13,7 +13,7 @@ wait 1
 press_if event a
 wait_screen game 6
 fakepad xbox
-press view
+press pause
 wait 0.4
 log --- ship: down past the bottom room -> weapons
 panel ship

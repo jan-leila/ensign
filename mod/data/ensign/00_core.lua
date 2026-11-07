@@ -24,6 +24,7 @@ E.settings = {
     cursorSpeed = 900,   -- free-cursor pixels/second at full deflection
     hud = 1,             -- show button hints
     repeatDelay = 0.35,  -- seconds before auto-repeat of nav input
+    setSwitchGuard = 0.3, -- seconds after an action-set switch during which held-over buttons are ignored
     repeatRate = 0.09,   -- seconds between repeats
 }
 

@@ -13,9 +13,9 @@ wait 1
 press_if event a
 wait_screen game 6
 fakepad xbox
-press view
+press pause
 wait 0.4
-log --- detail mode: room 14 -> select unit -> right to door -> right into room 10 -> select unit
+log --- detail mode: room 14 -> select unit -> right (no door on that wall) straight into room 10 -> select unit
 panel ship
 wait 0.3
 focus room 14
@@ -24,9 +24,6 @@ press a
 wait 0.4
 dump
 press a
-wait 0.4
-dump
-nav right
 wait 0.4
 dump
 nav right
@@ -44,11 +41,11 @@ focus room 6
 wait 0.3
 press a
 wait 0.4
-press view
+press pause
 wait 6
 dump
 log --- edge transitions: down past the ship -> weapons; up -> ship; left -> power; right -> weapons
-press view
+press pause
 wait 0.3
 panel ship
 wait 0.3

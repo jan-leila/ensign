@@ -13,7 +13,7 @@ I.sets = { "InGame", "Menus" }
 I.digital = {
     -- in flight
     "nav_up", "nav_down", "nav_left", "nav_right",
-    "group_prev", "group_next", "group_crew", "group_systems", "group_ship", "group_enemy",
+    "group_prev", "group_next", "group_crew", "group_systems", "group_weapons", "group_drones", "group_ship", "group_enemy",
     "room_open", "room_send", "room_detail", "room_deselect_all",
     "detail_toggle_unit", "detail_toggle_door", "detail_back",
     "target_confirm", "beam_point", "target_cancel",
@@ -21,7 +21,7 @@ I.digital = {
     "slot_toggle", "slot_off", "slot_retarget",
     "crew_select", "crew_deselect_all", "crew_reorder",
     "ui_select", "ui_back",
-    "jump", "pause", "ship_screens", "escape_menu",
+    "jump", "pause", "ship_screens", "ship_inventory", "escape_menu",
     "autofire", "crew_all", "doors_open", "doors_close", "saved_positions", "return_positions",
     "cursor_click", "cursor_rclick",
     -- menus
@@ -42,8 +42,8 @@ I.BUTTONS = {
     y = { "jump", "menu_info" },
     lb = { "group_prev", "menu_tab_prev" }, rb = { "group_next", "menu_tab_next" },
     lt = { "system_power_down" }, rt = { "system_power_up" },
-    start = { "ship_screens", "menu_escape" }, view = { "pause", "menu_pause" },
-    l3 = { "crew_all" },
+    start = { "ship_screens", "menu_escape" }, view = { "ship_inventory", "menu_escape" },
+    r5 = { "pause", "menu_pause" }, l3 = { "crew_all" },
     up = { "nav_up", "menu_up" }, down = { "nav_down", "menu_down" }, left = { "nav_left", "menu_left" }, right = { "nav_right", "menu_right" },
 }
 
@@ -64,9 +64,16 @@ I.connected = false
 I.anyInput = false
 I.fakeFamily = nil
 
+-- A button that is still held when the action set changes (Start opens the ship
+-- screens -> set Menus, where Start is menu_escape) would otherwise register as a
+-- fresh press in the new set. Rising edges in the first moments after a switch are
+-- held over: ignored until that button is released.
+local switchedAt = -100
+local heldOver = {}
 function I.setSet(name)
     if name ~= I.currentSet then
         I.currentSet = name
+        switchedAt = E.time or 0
         if E.native then Ensign.setActionSet(name) end
     end
 end
@@ -81,10 +88,20 @@ local function readDigital(name)
     return (Ensign.digital(resolve(name)))
 end
 
+-- raw left-stick / pad vector (x right, y up, both -1..1); the test driver can fake it
+local vAxis = { x = 0, y = 0, ticks = 0 }
+function I.virtualAxis(x, y, ticks) vAxis.x, vAxis.y, vAxis.ticks = x, y, ticks or 2 end
+function I.navAxis()
+    if vAxis.ticks > 0 then return vAxis.x, vAxis.y, math.sqrt(vAxis.x ^ 2 + vAxis.y ^ 2) end
+    if not E.native then return 0, 0, 0 end
+    local x, y = Ensign.analog(resolve("nav_move"))
+    x, y = x or 0, y or 0
+    return x, y, math.sqrt(x * x + y * y)
+end
+
 local stickDir = { up = false, down = false, left = false, right = false }
 local function stickDirections()
-    if not E.native then return stickDir end
-    local x, y = Ensign.analog(resolve("nav_move"))
+    local x, y = I.navAxis()
     local hi, lo = 0.55, 0.35
     local function hyst(on, v) if on then return v > lo else return v > hi end end
     stickDir.right = hyst(stickDir.right, x)
@@ -102,9 +119,16 @@ function I.update()
     end
     local now = E.time
     local sd = stickDirections()
+    local guard = (now - switchedAt) < E.settings.setSwitchGuard
     for _, name in ipairs(tracked) do -- luacheck: ignore 421
         prev[name] = cur[name] or false
         local v = readDigital(name)
+        local isVirtual = virtual[name] and virtual[name] > 0
+        if v and not prev[name] and guard and not isVirtual then heldOver[name] = true end
+        if heldOver[name] then
+            if not v then heldOver[name] = nil end
+            v = false
+        end
         if name == "nav_up" then v = v or sd.up
         elseif name == "nav_down" then v = v or sd.down
         elseif name == "nav_left" then v = v or sd.left
@@ -118,6 +142,7 @@ function I.update()
         if v then I.anyInput = true end
     end
     for k, v in pairs(virtual) do if v > 0 then virtual[k] = v - 1 end end -- luacheck: ignore
+    if vAxis.ticks > 0 then vAxis.ticks = vAxis.ticks - 1 end
     local cx, cy = I.cursorAxis()
     if math.abs(cx) > 0.05 or math.abs(cy) > 0.05 then I.anyInput = true end
     if I.anyInput then I.lastDevice = "pad"; I.lastPadTime = now end
@@ -173,7 +198,7 @@ local FALLBACK_BUTTON = {
 }
 local verbButton = {}
 for btn, verbs in pairs(I.BUTTONS) do for _, v in ipairs(verbs) do verbButton[v] = verbButton[v] or btn end end
-verbButton.doors_open, verbButton.doors_close, verbButton.autofire, verbButton.group_enemy = "l4", "r4", "l5", "r5"
+verbButton.doors_open, verbButton.doors_close, verbButton.autofire, verbButton.pause, verbButton.menu_pause = "l4", "r4", "l5", "r5", "r5"
 
 function I.glyph(name)
     if E.native and not I.fakeFamily then
@@ -185,6 +210,7 @@ function I.glyph(name)
     local tab = FALLBACK_BUTTON[family or "xbox"] or FALLBACK_BUTTON.xbox
     local btn = verbButton[name] or name
     if family == "deck" and (btn == "l4" or btn == "r4" or btn == "l5" or btn == "r5") then return "deck_" .. btn, name end
+    if btn == "r5" then btn = "l3" end   -- pads without back buttons carry pause on the stick click
     local g = tab[btn] or (btn == "down" or btn == "left" or btn == "right") and "dpad" or nil
     if g then return g, name end
     return nil

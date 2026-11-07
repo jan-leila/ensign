@@ -1,6 +1,11 @@
 -- 40_menus.lua: controller handling for every non-combat screen (main menu, hangar,
 -- options, events, store, ship screens, star map, dialogs). The native side
 -- enumerates the clickable rectangles; this module navigates and clicks them.
+--
+-- Star map: only the beacons you can actually jump to are targets. The d-pad steps
+-- between them; the stick points at them (the beacon whose bearing from your current
+-- beacon best matches the stick direction lights up). A jumps, X waits, Y toggles the
+-- distress beacon, B closes the map.
 local E = ENSIGN
 local M = {}
 E.menus = M
@@ -10,7 +15,7 @@ M.hits = {}
 M.screen = "none"
 M.lastScreen = "none"
 M.hint = {}
-
+M.stickHeld = false
 
 local function kinds(...)
     local t = {}
@@ -20,12 +25,12 @@ end
 
 -- Which hits are navigable on each screen (nil = all)
 local navigable = {
-    starmap = kinds("location", "button", "close", "sector"),
+    starmap = kinds("location", "sector"),
 }
 -- Preferred kinds to land on when a screen (or a tab) opens
 local preferred = {
     shipscreens = { "upgrade", "crewequip", "equip" },
-    store = { "store", "storeitem", "equip" },
+    store = { "store", "equip" },
     starmap = { "location" },
     options = { "choice" },
     event = { "choice" },
@@ -47,9 +52,23 @@ end
 local PICKABLE = { equip = true, crewequip = true }
 M.carry = nil
 
+local function playerCrewCount()
+    local ok, n = pcall(function()
+        local list, n = E.playerShip().vCrewList, 0
+        for i = 0, list:size() - 1 do local c = list[i]; if c and c.iShipId == 0 and not c.bDead then n = n + 1 end end
+        return n
+    end)
+    return ok and n or 0
+end
+
 -- equipment slots: hide the weapon/drone rows the game does not show, and skip empty
 -- slots unless something is being carried (then they are drop targets)
-local function equipVisible(h)
+local function equipVisible(h, crewCount)
+    if h.kind == "crewequip" then
+        -- the manifest fills its boxes in crew order, so the first `crewCount` are occupied
+        return h.id < crewCount or M.carry ~= nil
+    end
+    if h.kind == "button" and h.id >= 300 and h.id < 500 then return h.id % 100 < crewCount end   -- dismiss / rename
     if h.kind ~= "equip" then return true end
     local ok, hidden = pcall(function()
         local ship = E.playerShip()
@@ -93,25 +112,40 @@ local function findHit(kind, id)
     return nil
 end
 
+-- star map helpers: bit 1 = current beacon, bit 2 = reachable from it
+local function isCurrent(h) return h.kind == "location" and h.extra % 2 == 1 end
+local function isReachable(h) return h.kind == "location" and (h.extra // 2) % 2 == 1 end
+local function currentBeacon(hits)
+    for _, h in ipairs(hits) do if isCurrent(h) then return h end end
+    return nil
+end
+
 function M.update(screen)
     I, C, N = E.input, E.cursor, E.nav
     M.screen = screen
     M.hits = Ensign.hitboxes()
     local filter = navigable[screen]
+    local crewCount = playerCrewCount()
     local cands = {}
     for _, h in ipairs(filter and N.filterKind(M.hits, filter) or M.hits) do
-        if equipVisible(h) and not (h.kind == "crewequip" and h.label == "empty" and not M.carry) then cands[#cands + 1] = h end
+        local ok = equipVisible(h, crewCount)
+        if ok and h.kind == "location" and not isReachable(h) then ok = false end
+        if ok then cands[#cands + 1] = h end
     end
     if screen ~= M.lastScreen then
         -- new screen: focus the most sensible default
         C.focus = nil
         M.lastScreen = screen
+        M.stickHeld = false
         local def = findHit("confirm_yes") or preferredHit(screen, cands) or findHit("choice", 0) or findHit("button", 0)
         if def and screen ~= "starmap" then C.snapTo(def) end
         lastTab = currentTab(M.hits)
         if screen == "starmap" then
-            -- start on the beacon we are at
-            for _, h in ipairs(cands) do if h.kind == "location" and h.extra % 2 == 1 then C.snapTo(h) end end
+            -- start on the reachable beacon nearest to the one we are at
+            local here = currentBeacon(M.hits)
+            local hx, hy = here and E.center(here) or C.x, here and select(2, E.center(here)) or C.y
+            local first = N.nearest(hx, hy, cands)
+            if first then C.mode = "snap"; C.snapTo(first) end
         end
     else
         local tab = currentTab(M.hits)
@@ -127,8 +161,26 @@ function M.update(screen)
     -- analog cursor
     C.updateFree()
 
+    -- star map: the stick points at a beacon
+    local stickDrives = false
+    if screen == "starmap" then
+        local sx, sy, mag = I.navAxis()
+        local here = currentBeacon(M.hits)
+        if mag > 0.5 and here then
+            local hx, hy = E.center(here)
+            local pick = N.pickAngle(hx, hy, cands, math.atan(sy, sx), math.rad(55), isReachable)
+            if pick and not (C.focus and E.sameHit(pick, C.focus)) then
+                C.mode = "snap"
+                C.snapTo(pick)
+                E.feedback.tick()
+            end
+            stickDrives = true
+        end
+        M.stickHeld = stickDrives
+    end
+
     local dir = I.navDirection()
-    if dir then
+    if dir and not stickDrives then
         local from = C.focus or { x = C.x - 1, y = C.y - 1, w = 2, h = 2, kind = "_cursor", id = -1 }
         local nxt = N.pick(from, cands, dir, function(h) return h.enabled ~= false end)
         if not nxt and not C.focus then nxt = N.nearest(C.x, C.y, cands) end
@@ -159,7 +211,18 @@ function M.update(screen)
             if screen == "starmap" and C.focus and C.focus.kind == "location" then M.lastLocation = C.focus end
         end
     end
-    if I.pressed("menu_alt") or I.pressed("cursor_rclick") then clickFocus(3) end
+    if screen == "starmap" then
+        if I.pressed("menu_alt") then
+            local wait = findHit("button", 2)
+            if wait then C.snapTo(wait); C.click(1); if C.focus then C.snapTo(C.focus) end end
+        end
+        if I.pressed("menu_info") then
+            local d = findHit("button", 3)
+            if d then C.snapTo(d); C.click(1); if C.focus then C.snapTo(C.focus) end end
+        end
+    elseif I.pressed("menu_alt") or I.pressed("cursor_rclick") then
+        clickFocus(3)
+    end
     if M.carry and I.pressed("menu_put_back") then
         C.snapTo(M.carry.origin)   -- put it back
         C.release(1)
@@ -187,36 +250,28 @@ function M.update(screen)
     if I.pressed("menu_tab_prev") then cycleTabs(-1) end
     if I.pressed("menu_tab_next") then cycleTabs(1) end
     if I.pressed("menu_escape") then C.key(E.KEY.ESC) end
-    if I.pressed("menu_pause") and screen == "starmap" then
-        local wait = findHit("button", 2)
-        if wait then C.snapTo(wait); C.click(1) end
-    end
-    if I.pressed("menu_info") and screen == "starmap" and false then
-        local jb = findHit("button", 1)
-        if jb then C.snapTo(jb); C.click(1) end
-    end
-    if I.pressed("menu_info") and screen == "starmap" then
-        local d = findHit("button", 3)
-        if d then C.snapTo(d); C.click(1) end
-    end
 
     -- HUD hints
-    local hint = { { "nav_up", "Navigate" }, { "menu_select", "Select" } }
+    local hint = { { "nav_up", "Move cursor" }, { "menu_select", "Select" } }
     if screen == "confirm" then hint[#hint + 1] = { "menu_back", "No" }
     elseif screen == "starmap" then
-        hint = { { "nav_up", "Beacon" }, { "menu_select", "Jump there" }, { "menu_pause", "Wait" }, { "menu_back", "Close map" } }
+        hint = { { "nav_up", "Pick beacon" }, { "menu_select", "Jump there" }, { "menu_alt", "Wait here" },
+                 { "menu_info", "Distress beacon" }, { "menu_back", "Close map" } }
     elseif screen == "store" or screen == "shipscreens" then
-        if M.carry then hint = { { "nav_up", "Move" }, { "menu_drop", "Drop" }, { "menu_put_back", "Put back" } }
+        if M.carry then hint = { { "nav_up", "Move item" }, { "menu_drop", "Place here" }, { "menu_put_back", "Put back" } }
         else
-            if C.focus and PICKABLE[C.focus.kind] then hint[2] = { "menu_pickup", "Pick up" } end
-            hint[#hint + 1] = { "menu_tab_next", "Tab" }; hint[#hint + 1] = { "menu_alt", "Alt" }; hint[#hint + 1] = { "menu_back", "Close" }
+            if C.focus and PICKABLE[C.focus.kind] then hint[2] = { "menu_pickup", "Pick up" }
+            elseif screen == "store" and C.focus and C.focus.kind == "store" then hint[2] = { "menu_select", "Buy" } end
+            hint[#hint + 1] = { "menu_tab_next", "Next tab" }; hint[#hint + 1] = { "menu_back", "Close" }
         end
     elseif screen == "options" or screen == "pausemenu" or screen == "scores" then
         hint[#hint + 1] = { "menu_back", "Close" }
     elseif screen == "rename" or screen == "input" then
         hint = { { "menu_select", "Confirm" }, { "menu_back", "Cancel" } }
     elseif screen == "shipbuilder" or screen == "shipselect" then
-        hint[#hint + 1] = { "menu_tab_next", "Type" }; hint[#hint + 1] = { "menu_back", "Back" }
+        hint[#hint + 1] = { "menu_tab_next", "Ship type" }; hint[#hint + 1] = { "menu_back", "Back" }
+    elseif screen == "event" then
+        hint[2] = { "menu_select", "Choose" }
     end
     M.hint = hint
 end

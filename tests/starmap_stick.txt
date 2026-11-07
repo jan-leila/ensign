@@ -1,0 +1,50 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+log --- wait for the FTL drive then open the map
+wait 25
+press jump
+wait_screen starmap 10
+dump
+shot starmap_open
+log --- stick in four directions picks reachable beacons only
+stick 1 0
+wait 0.3
+dump
+stick 0 1
+wait 0.3
+dump
+stick -1 0
+wait 0.3
+dump
+stick 0 -1
+wait 0.3
+dump
+log --- d-pad steps between reachable beacons
+nav right
+wait 0.4
+dump
+nav left
+wait 0.4
+dump
+shot starmap_picked
+log --- X waits (one tick passes), B closes the map
+press x
+wait 2
+dump
+press b
+wait 1
+dump
+end

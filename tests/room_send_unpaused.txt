@@ -1,0 +1,56 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+log --- unpaused: select a unit in room 14 via detail mode, back to rooms, wait, then send to room 6
+panel ship
+wait 0.3
+focus room 14
+wait 0.3
+press a
+wait 0.4
+press a
+wait 0.4
+dump
+press b
+wait 0.4
+dump
+wait 3
+dump
+focus room 6
+wait 0.3
+press a
+wait 0.4
+dump
+wait 5
+dump
+log --- select from the crew list, cross to the ship, send to room 0
+panel crew
+wait 0.3
+focus crewbox 2
+wait 0.3
+press a
+wait 0.5
+dump
+nav right
+wait 0.5
+dump
+focus room 0
+wait 0.3
+press a
+wait 0.5
+dump
+wait 5
+dump
+end

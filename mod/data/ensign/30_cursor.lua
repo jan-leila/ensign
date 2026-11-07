@@ -38,12 +38,15 @@ function C.snapTo(hit)
     end
 end
 
--- Queue a click at the current cursor position: button down now, up next tick.
--- opts.shift holds Shift around the click (multi-select), opts.hold keeps the button down.
+-- Queue a click at the current cursor position: button down next tick, up the tick
+-- after. The click is pinned to where the cursor is now, so the frame may move on
+-- (it often snaps back to a candidate right away) without the button-up landing
+-- somewhere else and cancelling the press.
+-- opts.shift holds Shift around the click (multi-select).
 function C.click(button, opts)
     button = button or 1
     opts = opts or {}
-    queue[#queue + 1] = { button = button, shift = opts.shift, phase = 0 }
+    queue[#queue + 1] = { button = button, shift = opts.shift, phase = 0, x = math.floor(C.x), y = math.floor(C.y) }
 end
 
 function C.processQueue()
@@ -53,13 +56,15 @@ function C.processQueue()
     E.injecting = true
     if q.phase == 0 then
         if q.shift then Ensign.keyDown(E.KEY.LSHIFT) end
-        C.sync(true)
+        Ensign.mouseMove(q.x, q.y)
         Ensign.mouseDown(q.button)
         q.phase = 1
     else
+        Ensign.mouseMove(q.x, q.y)
         Ensign.mouseUp(q.button)
         if q.shift then Ensign.keyUp(E.KEY.LSHIFT) end
         table.remove(queue, 1)
+        C.sync(true)                       -- back to wherever the frame is now
     end
     E.injecting = false
 end
@@ -97,6 +102,7 @@ function C.updateFree()
     if ax == 0 and ay == 0 then return false end
     local dx, dy
     if isDelta then
+        if math.abs(ax) < 2 and math.abs(ay) < 2 then return false end   -- a resting thumb must not break snap mode
         dx, dy = ax, ay                      -- trackpad / mouse-like: pixels per frame
     else
         local mag = math.sqrt(ax * ax + ay * ay)

@@ -12,7 +12,7 @@ press_if event a
 wait 1
 press_if event a
 wait_screen game 6
-press view
+press pause
 wait 0.5
 press rb
 wait 0.3
@@ -38,7 +38,7 @@ dump
 press a
 wait 0.3
 dump
-press view
+press pause
 wait 1
 dump
 wait 2

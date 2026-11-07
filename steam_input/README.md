@@ -37,9 +37,11 @@ Triggers: LT = `system_power_down`, RT = `system_power_up` (Full_Press on the tr
 | group_prev | Previous group | LB |
 | group_next | Next group | RB |
 | group_crew | Go to crew group | unbound |
-| group_systems | Go to systems / weapons group | unbound |
+| group_systems | Go to power (systems) group | unbound |
+| group_weapons | Go to weapons group | unbound |
+| group_drones | Go to drones group | unbound |
 | group_ship | Go to ship group | unbound |
-| group_enemy | Go to enemy ship | Deck R5 |
+| group_enemy | Go to enemy ship | unbound |
 | room_open | Room: open units & doors | A |
 | room_send | Room: send selected units | A |
 | room_detail | Room: show details | X |
@@ -53,71 +55,71 @@ Triggers: LT = `system_power_down`, RT = `system_power_up` (Full_Press on the tr
 | system_power_up | System: add power | A, RT |
 | system_power_down | System: remove power | B, LT |
 | system_off | System: turn off | X |
-| slot_toggle | Weapon / drone: toggle power | A |
-| slot_off | Weapon / drone: turn off | B |
-| slot_retarget | Weapon / drone: re-target | X |
+| system_use | System: cloak / battery / hack / mind control / teleport | X |
+| slot_toggle | Weapon / drone: power on then aim (hold: move) | A |
+| slot_off | Weapon / drone: power off | B |
+| slot_retarget | Weapon: power and aim | X |
 | crew_select | Crew: select | A |
 | crew_deselect_all | Crew: deselect all | B |
 | crew_reorder | Crew: reorder | X |
 | ui_select | UI: select | A |
 | ui_back | UI: back | B |
 | jump | Jump (FTL jump) | Y |
-| pause | Pause | View/Back |
+| pause | Pause | left stick click; Deck R5; Steam Controller right grip |
 | ship_screens | Open ship screens (systems / crew / inventory) | Start/Menu |
+| ship_inventory | Open inventory | View/Back |
 | escape_menu | Escape menu | unbound |
 | autofire | Toggle autofire | Deck L5 |
-| crew_all | Select all crew | left stick click |
+| crew_all | Select all crew | right stick click; Deck left stick click; Steam Controller left stick click |
 | doors_open | Open all doors | Deck L4; Steam Controller left grip |
-| doors_close | Close all doors | Deck R4; Steam Controller right grip |
+| doors_close | Close all doors | Deck R4 |
 | saved_positions | Save crew positions | unbound |
 | return_positions | Return crew to saved positions | unbound |
-| cursor_click | Cursor click | right pad click (Deck / Steam Controller) |
+| cursor_click | Cursor click | Deck right pad click; Steam Controller right pad click |
 | cursor_rclick | Cursor right click | unbound |
-
-Steam Controller: left pad = D-pad `nav_*`, right pad = `cursor_move`, left stick = `nav_move`; no right stick. Steam Deck: right trackpad = `cursor_move`, left trackpad = `nav_move`, gyro off. The right stick click is unbound everywhere.
-
-### Menus
-Analog: `menu_nav` (joystick_move: left stick; Deck left pad), `menu_cursor` (absolute_mouse: right stick; Deck/Steam Controller right pad).
-
-| Action | Meaning | Default |
-|---|---|---|
-| menu_up | Menu up | D-pad up |
-| menu_down | Menu down | D-pad down |
-| menu_left | Menu left | D-pad left |
-| menu_right | Menu right | D-pad right |
-| menu_select | Menu select | A |
-| menu_pickup | Menu pick up | A |
-| menu_drop | Menu drop | A |
-| menu_back | Menu back | B |
-| menu_put_back | Menu put back | B |
-| menu_alt | Menu secondary | X |
-| menu_info | Menu info | Y |
-| menu_tab_prev | Previous tab | LB |
-| menu_tab_next | Next tab | RB |
-| menu_pause | Menu pause | View/Back |
-| menu_escape | Menu escape | Start/Menu |
-| menu_click | Menu click | right pad click (Deck / Steam Controller) |
-| menu_rclick | Menu right click | unbound |
-
-Changes from the first layout: `pause` and `ship_screens` swapped (Start = ship screens, View/Back = pause); `select`, `back`, `alt`, `info`, `panel_prev/next/crew/systems/ship`, `power_up/down`, `game_menu`, `focus_toggle` were replaced by the per-state actions above (`group_*`, `system_power_*`, `ship_screens`, `group_enemy`); `jump` moved from right stick click to Y.
-
-## How the mod registers it
-At runtime the mod calls `SteamInput()->SetInputActionManifestFilePath(<absolute path to ensign_actions.vdf>)` before `Init`/first use (the doc calls the override `SetInputActionManifestPath`; the override is remembered for the rest of the Steam session). Config `path` values are relative to the manifest.
-
-## Local-testing fallback
-Valve's IGA doc: create a "controller_config" directory inside the Steam folder, place the file there, and rename it to `game_actions_X.vdf`, where X is the AppID (Linux: `~/.steam/steam/controller_config`; make sure it is `controller_config`, not `controller_base`). So:
-
-    cp ensign_actions.vdf ~/.steam/steam/controller_config/game_actions_212680.vdf
-
-Note: this IGA route uses only the actions/localization; the `configurations` block is for the manifest route.
-
-## Requirements
-On desktop Steam, Steam Input must be enabled for FTL (Properties > Controller > Override for FTL > Enable Steam Input).
-
-## Exporting a tuned config
-    xdg-open 'steam://dumpcontrollerconfig?appid=212680'
-
-writes a .vdf to /tmp. Replace the matching `configs/controller_*.vdf` with it (check `controller_type`) and keep the `actions` block consistent with the manifest.
-
-## Limitations
-Binding syntax was copied from real exported configs, but several details are unverified (see `NOTES.md`): Deck L4/L5 assignment, Start/Back input names, trigger "edge" binding, trackpad modes. Tune in Steam's configurator and re-export if anything misbehaves.
+| weapon_slot_1 | Weapon slot 1: select (power / aim) | unbound |
+| weapon_slot_2 | Weapon slot 2: select (power / aim) | unbound |
+| weapon_slot_3 | Weapon slot 3: select (power / aim) | unbound |
+| weapon_slot_4 | Weapon slot 4: select (power / aim) | unbound |
+| drone_slot_1 | Drone slot 1: select (power on / off) | unbound |
+| drone_slot_2 | Drone slot 2: select (power on / off) | unbound |
+| drone_slot_3 | Drone slot 3: select (power on / off) | unbound |
+| drone_slot_4 | Drone slot 4: select (power on / off) | unbound |
+| crew_slot_1 | Crew member 1: select | unbound |
+| crew_slot_2 | Crew member 2: select | unbound |
+| crew_slot_3 | Crew member 3: select | unbound |
+| crew_slot_4 | Crew member 4: select | unbound |
+| crew_slot_5 | Crew member 5: select | unbound |
+| crew_slot_6 | Crew member 6: select | unbound |
+| crew_slot_7 | Crew member 7: select | unbound |
+| crew_slot_8 | Crew member 8: select | unbound |
+| power_shields_up | Shields: add power | unbound |
+| power_shields_down | Shields: remove power | unbound |
+| power_engines_up | Engines: add power | unbound |
+| power_engines_down | Engines: remove power | unbound |
+| power_oxygen_up | Oxygen: add power | unbound |
+| power_oxygen_down | Oxygen: remove power | unbound |
+| power_weapons_up | Weapons: add power | unbound |
+| power_weapons_down | Weapons: remove power | unbound |
+| power_drones_up | Drones: add power | unbound |
+| power_drones_down | Drones: remove power | unbound |
+| power_medbay_up | Medbay: add power | unbound |
+| power_medbay_down | Medbay: remove power | unbound |
+| power_clonebay_up | Clone bay: add power | unbound |
+| power_clonebay_down | Clone bay: remove power | unbound |
+| power_teleporter_up | Teleporter: add power | unbound |
+| power_teleporter_down | Teleporter: remove power | unbound |
+| power_cloaking_up | Cloaking: add power | unbound |
+| power_cloaking_down | Cloaking: remove power | unbound |
+| power_artillery_up | Artillery: add power | unbound |
+| power_artillery_down | Artillery: remove power | unbound |
+| power_hacking_up | Hacking: add power | unbound |
+| power_hacking_down | Hacking: remove power | unbound |
+| power_mind_up | Mind control: add power | unbound |
+| power_mind_down | Mind control: remove power | unbound |
+| use_teleport | Teleporter: arm (again: return) | unbound |
+| use_cloak | Cloak | unbound |
+| use_battery | Backup battery | unbound |
+| use_mind | Mind control: arm | unbound |
+| use_hacking | Hacking: arm | unbound |
+| slot_clear_target | Weapon: clear target | unbound |

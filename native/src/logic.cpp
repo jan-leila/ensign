@@ -127,12 +127,16 @@ bool sys_power(int systemId, int delta) {
     CommandGui* g = gui();
     if (!g) return false;
     SYM(rb, void (*)(SystemControl*, int, int, bool), "_ZN13SystemControl7RButtonEiib");
+    SYM(mm, void (*)(SystemControl*, int, int), "_ZN13SystemControl9MouseMoveEii");
     SystemControl& sc = g->sysControl;
     for (size_t i = 0; i < vsz(sc.sysBoxes); i++) {
         SystemBox* b = sc.sysBoxes._start[i];
         if (!sane(b) || !sane(b->pSystem) || b->pSystem->iSystemType != systemId) continue;
         int x = sc.position.x + b->hitBox.x + 8, y = sc.position.y + b->hitBox.y + b->hitBox.h + 1;   // the icon band (see game.cpp)
+        // the button handler acts on the box the panel last saw the pointer over
+        mm(&sc, x, y);
         rb(&sc, x, y, false);
+        mm(&sc, -500, -500);   // and leaves nothing hovered behind
         return true;
     }
     return false;
@@ -206,6 +210,38 @@ bool fire_at(int targetShipId, int npoints, const float* xy) {
     return true;
 }
 
+bool clear_aiming(int slot) {
+    ShipManager* sm = player();
+    if (!sm || !sane(sm->weaponSystem)) return false;
+    if (slot < 0 || (size_t)slot >= vsz(sm->weaponSystem->weapons)) return false;
+    ProjectileFactory* w = sm->weaponSystem->weapons._start[slot];
+    if (!sane(w)) return false;
+    SYM(clear, void (*)(ProjectileFactory*), "_ZN17ProjectileFactory11ClearAimingEv");
+    clear(w);
+    return true;
+}
+
+bool armament_hotkey(int systemId, int slot) {
+    CommandGui* g = gui();
+    if (!g || slot < 0) return false;
+    if (systemId == 4) {
+        SYM(hk, void (*)(DroneControl*, unsigned), "_ZN12DroneControl14ArmamentHotkeyEj");
+        hk(&g->combatControl.droneControl, (unsigned)slot);
+    } else {
+        SYM(hk, void (*)(WeaponControl*, unsigned), "_ZN13WeaponControl14ArmamentHotkeyEj");
+        hk(&g->combatControl.weapControl, (unsigned)slot);
+    }
+    return true;
+}
+
+bool doors_all(bool open) {
+    ShipManager* sm = player();
+    if (!sm) return false;
+    SYM(all, void (*)(ShipManager*, bool), "_ZN11ShipManager18ManipulateAllDoorsEb");
+    all(sm, open);   // the game's own check for a working door subsystem happens inside
+    return true;
+}
+
 bool swap_weapons(int a, int b) {
     CommandGui* g = gui();
     if (!g) return false;
@@ -255,7 +291,7 @@ bool paused() { CommandGui* g = gui(); return g && g->bPaused; }
 void special_armed(int& teleport, bool& hacking, int& mind) {
     teleport = 0; hacking = false; mind = 0;
     CommandGui* g = gui();
-    if (!g) return;
+    if (!g || !player()) return;   // the getters read the ship: nothing to ask before a run starts
     using TeleFn = int (*)(CombatControl*); using HackFn = bool (*)(CombatControl*); using MindFn = int (*)(CombatControl*);
     static TeleFn tele = sym<TeleFn>("_ZN13CombatControl15TeleporterArmedEv");
     static HackFn hack = sym<HackFn>("_ZN13CombatControl12HackingArmedEv");

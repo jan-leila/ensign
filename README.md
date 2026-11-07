@@ -13,14 +13,16 @@ Switch Pro or generic pad. It is built on the
   (and is hidden), so hover highlights, tooltips and aiming previews behave
   exactly as with a mouse. Pushing past the edge of a group crosses into the
   neighbouring one (ship ↔ the bottom bar below, crew list left, controls above,
-  enemy right), landing on the element in the direction of travel. The bottom
-  bar runs power → weapons → drones → subsystems from left to right.
+  enemy right), landing on the element in the direction of travel: whatever
+  shares the row or column wins, otherwise the most aligned thing in a
+  90-degree cone, never a lurch to something off to the side. The bottom bar
+  runs power → weapons → drones → subsystems from left to right.
 * **Groups, rotated with the bumpers** (or jumped to with their own
   actions): *crew* (the portraits), *power* (the reactor boxes), *weapons* and
   *drones* (their slots, empty ones skipped; each only while the ship has that
-  system), *subsystems* (piloting, sensors, doors, backup battery) and *ship*
-  (rooms; the enemy ship joins the rotation when present and is forced while
-  something is aimed).
+  system), *subsystems* (piloting, sensors, doors with their open-all and
+  close-all buttons, backup battery) and *ship* (rooms; the enemy ship joins
+  the rotation when present and is forced while something is aimed).
 * **Ship.** A on a room opens *detail mode*, which walks the units and doors:
   within a room between its units, out of a room through the door on that
   wall first and then into the next room. A toggles a unit in a persistent
@@ -36,20 +38,33 @@ Switch Pro or generic pad. It is built on the
   once powered, aims it (hold A and move to re-order); B cancels an aim and
   then powers the slot off; X powers and aims in one go. Aiming locks the
   frame to the enemy ship's rooms, beams take two points, bombs and the
-  teleporter can swap ships.
+  teleporter can swap ships; once the target is set the frame returns to the
+  slot it came from.
 * **Every verb is its own Steam action** (`room_open`, `detail_toggle_door`,
   `system_off`, `slot_retarget`, ...), all on the natural buttons by default,
-  so any single one can be rebound without moving the others.
+  so any single one can be rebound without moving the others. Unbound extras
+  wait in the configurator for anyone who wants direct buttons: each weapon,
+  drone and crew slot, add/remove power per system, each special system,
+  "clear this weapon's target", event choices 1-8, and the star map's
+  next-sector and cancel buttons.
+* **Keyboard too.** Without a controller the same frame runs on the keyboard:
+  arrows move, Enter is A, Backspace is B, Delete is X, Insert is Y, `[` `]`
+  (or Page Up / Page Down) are the bumpers, `-` `=` the triggers, Home opens
+  the ship screens and End the inventory. None of these are keys FTL uses
+  itself, the game's own hotkeys keep working alongside, and the hints name
+  the keys instead of drawing glyphs.
 * **Screens**: Start opens the ship screens (systems / crew / inventory,
   bumpers switch tabs) and View goes straight to the inventory; A picks an
   item or crew member up and A drops it, B puts it back. Pause sits on a back
   button (Deck R5 / Steam Controller right grip; left stick click on pads
   without them). Event choices, the store, options, the hangar and the main
   menu use the same frame.
-* **Star map.** Only beacons you can jump to are targets: the d-pad steps
-  between them and the stick points at them (the beacon in the stick's
-  direction from your current one lights up). A jumps, X waits a turn, Y
-  toggles the distress beacon, B closes the map.
+* **Star map.** Only beacons you can jump to are targets, plus the map's own
+  buttons: the d-pad steps between them, and a flick of the stick moves to the
+  beacon in that direction from where the frame is, so the next flick carries
+  on from there. The sector list works the same way. A jumps (A again on the
+  same beacon confirms), X waits a turn, Y toggles the distress beacon, B
+  closes the map or cancels the sector choice.
 * **Feedback.** Rumble on hull hits, shield hits, weapon fire, jumps,
   boarders, crew deaths and low hull; trackpad haptic ticks on Deck / Steam
   Controller; glyph-based button hints in FTL's own style, drawn from the

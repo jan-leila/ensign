@@ -1,0 +1,39 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+log --- a three-choice event: down walks the choices in order and stops at the last
+event GHOST_SHIP
+wait 1.5
+dump
+nav down
+wait 0.3
+dump
+nav down
+wait 0.3
+dump
+nav down
+wait 0.3
+dump
+nav down
+wait 0.3
+dump
+nav up
+wait 0.3
+dump
+log --- choice_2 picks the second choice directly
+press choice_2
+wait 1
+dump
+end

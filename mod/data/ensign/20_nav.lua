@@ -5,11 +5,16 @@ local N = {}
 E.nav = N
 
 -- Pick the best candidate in a direction from the focused rect.
--- Standard "beam" scoring: distance along the axis plus a penalty for off-axis offset.
+-- Two tiers, like a desktop focus search: anything whose extent overlaps the focused
+-- rect across the axis of travel (the same row or column) wins over everything else,
+-- nearest first. Failing that, candidates inside a 45-degree cone in that direction
+-- (90 degrees wide), the most aligned one first: a sideways offset costs four times
+-- what the same distance along the axis does. Anything outside the cone is not "in that direction": the caller then
+-- crosses into the neighbouring group instead of lurching diagonally.
 function N.pick(from, candidates, dir, filter, strict)
     if not from then return candidates[1] end
     local fx, fy = E.center(from)
-    local best, bestScore = nil, math.huge
+    local best, bestScore, bestTier = nil, math.huge, 3
     for _, h in ipairs(candidates) do
         if (not filter or filter(h)) and not E.sameHit(h, from) then
             local cx, cy = E.center(h)
@@ -19,17 +24,22 @@ function N.pick(from, candidates, dir, filter, strict)
             elseif dir == "down" then along, across = dy, math.abs(dx)
             elseif dir == "left" then along, across = -dx, math.abs(dy)
             else along, across = dx, math.abs(dy) end
-            -- overlapping extents count as "aligned": reduce the across penalty
-            local overlap
+            local overlap, gap   -- extent shared across the axis; free space between the two rects along it
             if dir == "up" or dir == "down" then
                 overlap = math.min(from.x + from.w, h.x + h.w) - math.max(from.x, h.x)
+                gap = (dir == "up") and (from.y - (h.y + h.h)) or (h.y - (from.y + from.h))
             else
                 overlap = math.min(from.y + from.h, h.y + h.h) - math.max(from.y, h.y)
+                gap = (dir == "left") and (from.x - (h.x + h.w)) or (h.x - (from.x + from.w))
             end
-            if along > 1 and (not strict or across <= along * 1.1) then
-                local penalty = overlap > 0 and across * 0.6 or across * 2.2
-                local score = along + penalty
-                if score < bestScore then best, bestScore = h, score end
+            -- a rect the frame already overlaps along the axis is not "further that way"
+            if along > 1 and gap >= -10 then
+                local tier, score
+                if overlap > 0 then tier, score = 1, along + across * 0.3
+                elseif across <= along * (strict and 1.1 or 1.0) then tier, score = 2, along + across * 4 end   -- the most aligned wins over the nearest
+                if tier and (tier < bestTier or (tier == bestTier and score < bestScore)) then
+                    best, bestScore, bestTier = h, score, tier
+                end
             end
         end
     end

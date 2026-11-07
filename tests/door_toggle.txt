@@ -1,0 +1,36 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+press pause
+wait 0.4
+panel ship
+wait 0.3
+log --- room 10: X -> unit, right -> right-wall door 10, down -> door 11 on the same wall, down again
+focus room 10
+wait 0.3
+press room_detail
+nav right
+wait 0.3
+dump
+log --- A on the door opens it, A again closes it (the open flag must read back correctly)
+press a
+wait 0.5
+doordump
+dump
+press a
+wait 0.5
+doordump
+dump
+end

@@ -20,6 +20,9 @@ bool arm_weapon(int slot);                     // slot >= 0 arms it; -1 disarms 
 bool room_center(int shipId, int roomId, float& x, float& y);   // world coordinates for aiming
 bool fire_at(int targetShipId, int npoints, const float* xy);  // armed weapon -> points (1, or 2 for beams)
 bool swap_weapons(int a, int b);
+bool clear_aiming(int slot);                   // ProjectileFactory::ClearAiming on that weapon slot (drops its target)
+bool armament_hotkey(int systemId, int slot);  // the game's own number-key behaviour for a weapon (3) / drone (4) slot
+bool doors_all(bool open);                     // ShipManager::ManipulateAllDoors (the door subsystem's two buttons)
 bool swap_drones(int a, int b);
 bool move_crew(int crewIndex, int roomId);     // index into ShipManager::vCrewList
 bool door(bool airlock, int index, bool open); // index into vDoorList / vOuterAirlocks

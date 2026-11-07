@@ -1,0 +1,50 @@
+wait 6
+log --- keyboard only: Enter on the default button, arrows move the frame, hints name the keys
+kbd 13
+wait 0.1
+kbd 13 up
+wait_screen shipbuilder 10
+wait 0.5
+dump
+kbd 275
+wait 0.1
+kbd 275 up
+wait 0.3
+dump
+kbd 276
+wait 0.1
+kbd 276 up
+wait 0.3
+dump
+focus button 1
+kbd 13
+wait 0.1
+kbd 13 up
+wait 3
+focus choice 0
+kbd 13
+wait 0.1
+kbd 13 up
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+dump
+kbd 275
+wait 0.1
+kbd 275 up
+wait 0.3
+dump
+kbd 93
+wait 0.1
+kbd 93 up
+wait 0.3
+dump
+kbd 13
+wait 0.1
+kbd 13 up
+wait 0.3
+dump
+shot keyboard_hints
+end

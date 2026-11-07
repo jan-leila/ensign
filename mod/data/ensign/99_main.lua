@@ -82,6 +82,18 @@ script.on_internal_event(Defines.InternalEvents.ON_MOUSE_MOVE, function(x, y, xr
     return Defines.Chain.CONTINUE
 end)
 
+-- keyboard: the mapped keys drive the same verbs as the pad buttons
+pcall(function()
+    script.on_internal_event(Defines.InternalEvents.ON_KEY_DOWN, function(key)
+        if E.input.onKey(key, true) then return Defines.Chain.PREEMPT end
+        return Defines.Chain.CONTINUE
+    end)
+    script.on_internal_event(Defines.InternalEvents.ON_KEY_UP, function(key)
+        if E.input.onKey(key, false) then return Defines.Chain.PREEMPT end
+        return Defines.Chain.CONTINUE
+    end)
+end)
+
 script.on_internal_event(Defines.InternalEvents.ON_TICK, function()
     local ok, err = pcall(tick)
     if not ok then

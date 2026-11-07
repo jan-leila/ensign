@@ -34,3 +34,25 @@ Notes:
   a forgotten virtual pad counts as a connected controller, and although the shim
   now follows whichever controller shows input, a stray one is still confusing.
   `pgrep -af _virtual_pad` shows leftovers.
+
+## Headless scripts
+
+`tools/run-headless.sh --script tests/<name>.txt` runs a dev script against a replica
+of the game (`ENSIGN_REPLICA=~/.cache/ensign/replicaN` for parallel runs). The run
+stops after 25 s by default; anything that waits for a weapon to charge or several
+replicas at once needs `--seconds 60` or more, or the script is cut off mid-way with
+nothing failing.
+
+Dev commands (all in `mod/data/ensign/80_dev.lua`): `press <button|action>`, `nav
+<dir>`, `stick x y [ticks]`, `focus <kind> <id>`, `panel <name>`, `dump` (screen,
+focus, every hit), `wdump` (weapon internals and the live projectile count),
+`doordump` (door open flags through the game's own objects), `sysdump <id>`,
+`sysdump`, `doorbytes <i>` (raw object bytes beside the fields Hyperspace reports:
+how the Door layout was corrected), `kbd <sdl key> [up]` (feed the keyboard layer),
+`rawkey <sdl key>` (a real key through the game, exercising the Hyperspace key
+events), `logic <Ensign fn> args`, `event <name>` (`GHOST_SHIP` has three choices),
+`addsystem`, `power`, `crewto`, `shot <name>` (screenshot in the run's log dir).
+
+Hit `extra` values are only trustworthy where the struct layout has been checked
+against the live object; when a flag never changes in the dumps, suspect the layout
+before the game (the Door open flag was 4 bytes off until `doorbytes` showed it).

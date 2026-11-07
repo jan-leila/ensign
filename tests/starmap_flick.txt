@@ -1,0 +1,50 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+log --- wait for the FTL drive then open the map
+press jump
+wait 1
+dump
+log --- flick right, release, flick down: the second flick continues from the new frame
+stick 1 0
+wait 0.3
+dump
+stick 0 0
+wait 0.3
+stick 0 -1
+wait 0.3
+dump
+stick 0 0
+wait 0.3
+log --- holding the stick does not keep jumping
+stick -1 0 30
+wait 0.3
+dump
+wait 0.5
+dump
+stick 0 0
+wait 0.3
+log --- the map buttons are reachable: down from the beacons reaches the buttons, map_cancel closes
+nav down
+wait 0.3
+nav down
+wait 0.3
+nav down
+wait 0.3
+dump
+press map_cancel
+wait 0.5
+dump
+end

@@ -331,6 +331,17 @@ void add_ingame(std::vector<game::Hit>& out, CApp* a) {
         }
         else add_rect(out, "sysbox", sys, ox + b->location.x + 10, oy + b->location.y - 40, 36, 60, cstr(b->pSystem->name), true, (int)i);
     }
+    // the door subsystem's "open all" / "close all" buttons (DoorBox keeps them as plain buttons)
+    for (size_t i = 0; i < n; i++) {
+        SystemBox* b = sc.sysBoxes._start[i];
+        if (!b || !b->pSystem || b->pSystem->iSystemType != 8) continue;
+        // their hitboxes are relative to the box, which is drawn at SystemControl's position + its location
+        const DoorBox* db = (const DoorBox*)b;
+        int bx = sc.position.x + db->buttonOffset.x, by = sc.position.y + db->buttonOffset.y;   // the game keeps the buttons' origin here (it follows the box)
+        const GenericButton& o = db->openDoors._base; const GenericButton& c = db->closeDoors._base;
+        add_rect(out, "doorbtn", 0, bx + o.hitbox.x, by + o.hitbox.y, o.hitbox.w, o.hitbox.h, "open all doors", o.bActive, 0);
+        add_rect(out, "doorbtn", 1, bx + c.hitbox.x, by + c.hitbox.y, c.hitbox.w, c.hitbox.h, "close all doors", c.bActive, 0);
+    }
     T("crewboxes");
     const CrewControl& cc = gui->crewControl;
     n = vsize(cc.crewBoxes);
@@ -354,7 +365,7 @@ void add_ingame(std::vector<game::Hit>& out, CApp* a) {
             if (bx < ac.location.x - 5) { bx += ac.location.x; by += ac.location.y; }
             // unused slots keep a stale location far from the control: skip them
             if (by < ac.location.y - 40 || by > ac.location.y + 80) continue;
-            add_rect(out, "armament", (int)i, bx, by, 95, 58, cstr(b->iconName), true, ac.systemId);
+            add_rect(out, "armament", (int)i, bx, by - 2, 95, 44, cstr(b->iconName), true, ac.systemId);   // the slot box itself (the name strip hangs below it)
         }
     }
     {
@@ -429,14 +440,14 @@ void add_starmap(std::vector<game::Hit>& out, StarMap& sm) {
     }
     TS("buttons");
     // the map's buttons keep window-relative hitboxes; the window sits at sm.position
-    auto add_map_button = [&](const GenericButton& b, const char* kind, int id) {
-        add_rect(out, kind, id, b.hitbox.x + sm.position.x, b.hitbox.y + sm.position.y, b.hitbox.w, b.hitbox.h, "", b.bActive, 0);
+    auto add_map_button = [&](const GenericButton& b, const char* kind, int id, const char* label) {
+        add_rect(out, kind, id, b.hitbox.x + sm.position.x, b.hitbox.y + sm.position.y, b.hitbox.w, b.hitbox.h, label, b.bActive, 0);
     };
-    add_map_button(sm.jumpButton._base, "button", 1);
-    add_map_button(sm.waitButton._base, "button", 2);
-    add_map_button(sm.distressButton._base._base, "button", 3);
-    add_map_button(sm.endButton._base, "button", 4);
-    add_map_button(sm.closeButton._base, "close", 200);
+    add_map_button(sm.jumpButton._base, "button", 1, "jump");
+    add_map_button(sm.waitButton._base, "button", 2, "wait");
+    add_map_button(sm.distressButton._base._base, "button", 3, "distress");
+    add_map_button(sm.endButton._base, "button", 4, "next sector");
+    add_map_button(sm.closeButton._base, "close", 200, "close");
 }
 
 } // namespace
@@ -594,6 +605,32 @@ bool enemy_ship_origin(int& x, int& y) {
     x = c.position.x + c.targetPosition.x; y = c.position.y + c.targetPosition.y;
     return true;
 }
+// dev probe: raw bytes of a door object (layout validation)
+std::string door_bytes(int index, int from, int count) {
+    CApp* a = app();
+    if (!a || !a->world || !a->world->playerShip || !a->world->playerShip->shipManager) return "";
+    const Ship& ship = a->world->playerShip->shipManager->ship;
+    if (index < 0 || (size_t)index >= vsize(ship.vDoorList)) return "";
+    const unsigned char* b = (const unsigned char*)ship.vDoorList._start[index];
+    if (!sane_ptr(b) || from < 0 || count <= 0 || count > 1024) return "";
+    std::string s; char buf[8];
+    for (int i = 0; i < count; i++) { snprintf(buf, sizeof buf, "%02x", b[from + i]); s += buf; if (i % 4 == 3) s += " "; }
+    return s;
+}
+// which crew member (index into the ship's crew list) a crew box shows; -1 when none
+int crew_box_crew(int boxIndex) {
+    CApp* a = app();
+    if (!a || !a->gui) return -1;
+    const CrewControl& cc = a->gui->crewControl;
+    if (boxIndex < 0 || (size_t)boxIndex >= vsize(cc.crewBoxes)) return -1;
+    CrewBox* b = cc.crewBoxes._start[boxIndex];
+    if (!b || !sane_ptr(b->pCrew)) return -1;
+    ShipManager* sm = cc.shipManager;
+    if (!sane_ptr(sm)) return -1;
+    size_t n = vsize(sm->vCrewList);
+    for (size_t i = 0; i < n; i++) if (sm->vCrewList._start[i] == b->pCrew) return (int)i;
+    return -1;
+}
 bool armament_hover(int systemId, int index) {
     CApp* a = app();
     if (!a || !a->gui) return false;
@@ -733,6 +770,14 @@ std::string dev_probe() {
                 k = snprintf(buf, sizeof buf, "  sysbox %d loc=%d,%d hit=%d,%d,%d,%d top=%d\n", b->pSystem->iSystemType, b->location.x, b->location.y,
                     b->hitBox.x, b->hitBox.y, b->hitBox.w, b->hitBox.h, b->hitBoxTop);
                 s += buf;
+                if (b->pSystem->iSystemType == 8) {
+                    const DoorBox* db = (const DoorBox*)b;
+                    k = snprintf(buf, sizeof buf, "  doorbox open pos=%d,%d hit=%d,%d,%d,%d close pos=%d,%d hit=%d,%d,%d,%d offset=%d,%d\n",
+                        db->openDoors._base.position.x, db->openDoors._base.position.y, db->openDoors._base.hitbox.x, db->openDoors._base.hitbox.y, db->openDoors._base.hitbox.w, db->openDoors._base.hitbox.h,
+                        db->closeDoors._base.position.x, db->closeDoors._base.position.y, db->closeDoors._base.hitbox.x, db->closeDoors._base.hitbox.y, db->closeDoors._base.hitbox.w, db->closeDoors._base.hitbox.h,
+                        db->buttonOffset.x, db->buttonOffset.y);
+                    s += buf;
+                }
             }
         }
         // ship screens internals

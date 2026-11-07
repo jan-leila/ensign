@@ -24,10 +24,21 @@ I.digital = {
     "jump", "pause", "ship_screens", "ship_inventory", "escape_menu",
     "autofire", "crew_all", "doors_open", "doors_close", "saved_positions", "return_positions",
     "cursor_click", "cursor_rclick",
+    -- direct actions (unbound by default)
+    "weapon_slot_1", "weapon_slot_2", "weapon_slot_3", "weapon_slot_4",
+    "drone_slot_1", "drone_slot_2", "drone_slot_3", "drone_slot_4",
+    "crew_slot_1", "crew_slot_2", "crew_slot_3", "crew_slot_4", "crew_slot_5", "crew_slot_6", "crew_slot_7", "crew_slot_8",
+    "power_shields_up", "power_shields_down", "power_engines_up", "power_engines_down", "power_oxygen_up", "power_oxygen_down",
+    "power_weapons_up", "power_weapons_down", "power_drones_up", "power_drones_down", "power_medbay_up", "power_medbay_down",
+    "power_clonebay_up", "power_clonebay_down", "power_teleporter_up", "power_teleporter_down", "power_cloaking_up", "power_cloaking_down",
+    "power_artillery_up", "power_artillery_down", "power_hacking_up", "power_hacking_down", "power_mind_up", "power_mind_down",
+    "use_teleport", "use_cloak", "use_battery", "use_mind", "use_hacking", "slot_clear_target",
     -- menus
     "menu_up", "menu_down", "menu_left", "menu_right",
     "menu_select", "menu_pickup", "menu_drop", "menu_back", "menu_put_back", "menu_alt", "menu_info",
     "menu_tab_prev", "menu_tab_next", "menu_click", "menu_rclick", "menu_pause", "menu_escape",
+    "choice_1", "choice_2", "choice_3", "choice_4", "choice_5", "choice_6", "choice_7", "choice_8",
+    "map_next_sector", "map_cancel",
 }
 I.analog = { "nav_move", "cursor_move", "menu_nav", "menu_cursor" }
 
@@ -47,6 +58,24 @@ I.BUTTONS = {
     up = { "nav_up", "menu_up" }, down = { "nav_down", "menu_down" }, left = { "nav_left", "menu_left" }, right = { "nav_right", "menu_right" },
 }
 
+-- Keyboard: every physical pad button also has a key, so the whole mod works without a
+-- controller. The keys avoid everything FTL binds itself. (SDL 1.2 key codes.)
+I.KEYS = {
+    [273] = "up", [274] = "down", [276] = "left", [275] = "right",   -- arrows
+    [13] = "a", [271] = "a",                                         -- Enter / keypad Enter
+    [8] = "b",                                                       -- Backspace
+    [127] = "x",                                                     -- Delete
+    [277] = "y",                                                     -- Insert
+    [91] = "lb", [93] = "rb", [280] = "lb", [281] = "rb",            -- [ ] and Page Up / Page Down
+    [45] = "lt", [61] = "rt",                                        -- - and =
+    [278] = "start", [279] = "view",                                 -- Home / End
+}
+I.KEY_NAMES = { up = "Arrows", down = "Arrows", left = "Arrows", right = "Arrows", a = "Enter", b = "Backspace", x = "Delete",
+                y = "Insert", lb = "[", rb = "]", lt = "-", rt = "=", start = "Home", view = "End",
+                l3 = "Q", r5 = "Space", l4 = "Z", r4 = "X", l5 = "V", nav_move = "Arrows", cursor_move = "Mouse" }
+local kbd = {}            -- physical button name -> held
+I.keyboard = false        -- a mapped key has been used this session
+local verbButtons = {}    -- verb -> physical buttons carrying it
 I.currentSet = "Menus"
 -- the generic navigation names resolve to the menu variants in the Menus set
 local menuMap = { nav_up = "menu_up", nav_down = "menu_down", nav_left = "menu_left", nav_right = "menu_right",
@@ -80,12 +109,28 @@ end
 
 local tracked = {}
 for _, n in ipairs(I.digital) do if not menuMap[n] then tracked[#tracked + 1] = n end end
+for btn, verbs in pairs(I.BUTTONS) do for _, v in ipairs(verbs) do verbButtons[v] = verbButtons[v] or {}; table.insert(verbButtons[v], btn) end end
 for k in pairs(menuMap) do tracked[#tracked + 1] = k end
 
+-- held state of a verb and where it comes from ("pad" for Steam Input and the test driver, "kbd")
 local function readDigital(name)
-    if virtual[name] and virtual[name] > 0 then return true end
+    if virtual[name] and virtual[name] > 0 then return true, "pad" end
+    for _, btn in ipairs(verbButtons[name] or {}) do if kbd[btn] then return true, "kbd" end end
     if not E.native then return false end
-    return (Ensign.digital(resolve(name)))
+    if Ensign.digital(resolve(name)) then return true, "pad" end
+    return false
+end
+
+-- key events from the game (Hyperspace ON_KEY_DOWN / ON_KEY_UP); returns true when the
+-- key is one of ours. Text entry screens keep the keyboard to themselves.
+function I.onKey(code, down)
+    local btn = I.KEYS[code]
+    if not btn then return false end
+    if E.injecting then return false end
+    if E.screen == "rename" or E.screen == "input" then return false end
+    kbd[btn] = down and true or nil
+    if down then I.keyboard = true; I.lastDevice = "kbd"; I.lastPadTime = E.time or 0 end
+    return true
 end
 
 -- raw left-stick / pad vector (x right, y up, both -1..1); the test driver can fake it
@@ -115,14 +160,14 @@ local loggedPress = {}
 function I.update()
     I.anyInput = false
     if E.native then
-        I.connected = Ensign.poll() or (I.fakeFamily ~= nil)
+        I.connected = Ensign.poll() or (I.fakeFamily ~= nil) or I.keyboard
     end
     local now = E.time
     local sd = stickDirections()
     local guard = (now - switchedAt) < E.settings.setSwitchGuard
     for _, name in ipairs(tracked) do -- luacheck: ignore 421
         prev[name] = cur[name] or false
-        local v = readDigital(name)
+        local v, src = readDigital(name)
         local isVirtual = virtual[name] and virtual[name] > 0
         if v and not prev[name] and guard and not isVirtual then heldOver[name] = true end
         if heldOver[name] then
@@ -139,7 +184,7 @@ function I.update()
             repeatAt[name] = now + E.settings.repeatDelay
             if not loggedPress[name] then loggedPress[name] = true; E.log("first press: " .. name .. " (set " .. I.currentSet .. ")") end
         end
-        if v then I.anyInput = true end
+        if v and src == "pad" then I.anyInput = true end
     end
     for k, v in pairs(virtual) do if v > 0 then virtual[k] = v - 1 end end -- luacheck: ignore
     if vAxis.ticks > 0 then vAxis.ticks = vAxis.ticks - 1 end
@@ -201,6 +246,10 @@ for btn, verbs in pairs(I.BUTTONS) do for _, v in ipairs(verbs) do verbButton[v]
 verbButton.doors_open, verbButton.doors_close, verbButton.autofire, verbButton.pause, verbButton.menu_pause = "l4", "r4", "l5", "r5", "r5"
 
 function I.glyph(name)
+    if I.lastDevice == "kbd" then
+        local btn = verbButton[name] or name
+        return nil, I.KEY_NAMES[btn] or btn
+    end
     if E.native and not I.fakeFamily then
         local o, text, glyph = Ensign.origin(resolve(name))
         if o then return glyph, text end

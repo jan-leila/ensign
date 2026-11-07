@@ -18,7 +18,7 @@ end
 function H.visible()
     if E.settings.hud == 0 then return false end
     if not E.input.connected then return false end
-    return E.input.lastDevice == "pad"
+    return E.input.lastDevice == "pad" or E.input.lastDevice == "kbd"
 end
 
 -- The strip sits at the bottom right. In flight the game's subsystem group is raised

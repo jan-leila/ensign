@@ -66,6 +66,11 @@ local NEIGHBOR = {
 
 
 
+-- systems with power bars (each has its own add / remove power action) and the ones with a use action
+local POWERED = { shields = 0, engines = 1, oxygen = 2, weapons = 3, drones = 4, medbay = 5, teleporter = 9,
+                  cloaking = 10, artillery = 11, clonebay = 13, mind = 14, hacking = 15 }
+local USABLE = { teleport = 9, cloak = 10, battery = 12, mind = 14, hacking = 15 }
+
 local function hasSystem(id)
     local ok, v = pcall(function() return E.playerShip():HasSystem(id) end)
     return ok and v or false
@@ -75,7 +80,7 @@ local function kindFilter(panel)
     if panel == "ship" then return function(h) return h.kind == "room" and h.extra == 0 end
     elseif panel == "enemy" then return function(h) return h.kind == "room" and h.extra == 1 end
     elseif panel == "systems" then return function(h) return h.kind == "sysbox" and not SUBSYSTEM[h.id] end
-    elseif panel == "subsystems" then return function(h) return h.kind == "sysbox" and SUBSYSTEM[h.id] == true end
+    elseif panel == "subsystems" then return function(h) return (h.kind == "sysbox" and SUBSYSTEM[h.id] == true) or h.kind == "doorbtn" end
     elseif panel == "weapons" then
         local w = hasSystem(SYS.weapons)
         return function(h)
@@ -500,8 +505,10 @@ local function slotAim(h)
     if not slotPowered(h) then
         if not slotPowerSet(h, true) then return false end
         G.pendingArm = { slot = h.id, at = E.frame + 2 }
+        G.aimedSlot = h
         return true
     end
+    G.aimedSlot = h
     return Ensign.armWeapon(h.id)
 end
 -- aim the armed weapon at a room (bombs may target our own ship); beams take two rooms
@@ -513,6 +520,37 @@ local function aimAt(room, first)
 end
 
 local function shipIdOfPanel() return G.panel == "enemy" and 1 or 0 end
+
+-- weapon_slot_N / drone_slot_N: the frame goes to that slot and the game's own number-key
+-- behaviour runs (power an unpowered slot, arm a powered weapon); crew_slot_N selects that unit
+local function jumpToSlot(panel, systemId, index)
+    if not panelAvailable(panel) then return end
+    setPanel(panel)
+    for _, h in ipairs(G.panelHits) do
+        if h.kind == "armament" and h.extra == systemId and h.id == index then
+            C.mode = "snap"; C.snapTo(h)
+            -- the same as A on the slot: power an unpowered slot; aim a powered weapon, switch off a powered drone
+            if not slotPowered(h) then slotPowerSet(h, true)
+            elseif systemId == 3 then slotAim(h)
+            else slotPowerSet(h, false) end
+            E.feedback.pulse("select")
+            return
+        end
+    end
+end
+local function jumpToCrew(index)
+    if not panelAvailable("crew") then return end
+    setPanel("crew")
+    for _, h in ipairs(G.panelHits) do
+        if h.kind == "crewbox" and h.extra == index then
+            C.mode = "snap"; C.snapTo(h)
+            local ci = Ensign.crewBoxCrew(index)
+            if ci >= 0 then pcall(function() toggleSelect(E.playerShip().vCrewList[ci]) end) end
+            E.feedback.pulse("select")
+            return
+        end
+    end
+end
 
 function G.update()
     I, C, N = E.input, E.cursor, E.nav
@@ -529,6 +567,12 @@ function G.update()
         if targetingChanged then setPanel(panelAvailable("enemy") and "enemy" or "ship") end
     elseif targetingChanged and G.lastPanel then
         setPanel(G.lastPanel)
+        -- back from aiming: the frame returns to the slot that was aimed, not the first one
+        if G.aimedSlot then
+            local h = N.refresh(G.aimedSlot, G.panelHits)
+            if h then C.snapTo(h) end
+            G.aimedSlot = nil
+        end
     end
     if not targeting then G.lastPanel = G.panel end
 
@@ -605,9 +649,7 @@ function G.update()
             if not detailNav(dir, shipIdOfPanel()) then transition(dir) end
         else
             local from = focus or { x = C.x - 1, y = C.y - 1, w = 2, h = 2, kind = "_cursor", id = -1 }
-            local cands = G.panelHits
-            if G.panel == "crew" and (dir == "left" or dir == "right") then cands = N.filterKind(cands, { crewbox = true }) end
-            local nxt = N.pick(from, cands, dir)
+            local nxt = N.pick(from, G.panelHits, dir)
             if nxt then
                 C.mode = "snap"
                 C.snapTo(nxt)
@@ -700,16 +742,16 @@ function G.update()
         if I.pressed("system_use") and SPECIAL[focus.id] then
             if useSystem(focus.id) then E.feedback.pulse("select") end
         end
+    elseif focus and focus.kind == "doorbtn" then
+        if I.pressed("ui_select") then if Ensign.doorsAll(focus.id == 0) then E.feedback.pulse("select") else C.click(1) end end
     elseif slotFocus then
         if I.pressed("slot_toggle") then G.slotHold = { hit = focus, at = E.time, powered = slotPowered(focus), started = false } end
         if I.pressed("slot_off") then slotPowerSet(focus, false) end
         if I.pressed("slot_retarget") then slotAim(focus) end
     elseif G.panel == "crew" and focus and focus.kind == "crewbox" then
         if I.pressed("crew_select") then
-            local ok = pcall(function()
-                local crew = E.gui().crewControl.crewBoxes[focus.extra].pCrew
-                toggleSelect(crew)
-            end)
+            local ci = Ensign.crewBoxCrew(focus.extra)
+            local ok = ci >= 0 and pcall(function() toggleSelect(E.playerShip().vCrewList[ci]) end)
             if not ok then C.click(1, { shift = selectedCrewCount() > 0 }) end
         end
         if I.pressed("crew_deselect_all") then clearSelection() end
@@ -719,6 +761,27 @@ function G.update()
     end
     if I.pressed("cursor_click") then C.click(1) end
     if I.pressed("cursor_rclick") then C.click(3) end
+    -- direct actions (unbound by default; each is its own Steam action)
+    for n = 1, 4 do
+        if I.pressed("weapon_slot_" .. n) then jumpToSlot("weapons", 3, n - 1) end
+        if I.pressed("drone_slot_" .. n) then jumpToSlot("drones", 4, n - 1) end
+    end
+    for n = 1, 8 do if I.pressed("crew_slot_" .. n) then jumpToCrew(n - 1) end end
+    for name, id in pairs(POWERED) do
+        if I.pressed("power_" .. name .. "_up") then Ensign.sysPower(id, 1) end
+        if I.pressed("power_" .. name .. "_down") then Ensign.sysPower(id, -1) end
+    end
+    for name, id in pairs(USABLE) do
+        if I.pressed("use_" .. name) and hasSystem(id) then if useSystem(id) then E.feedback.pulse("select") end end
+    end
+    if I.pressed("slot_clear_target") then
+        if slotFocus and focus.extra == 3 then Ensign.clearAiming(focus.id)
+        elseif G.targeting then if not Ensign.armWeapon(-1) then C.click(3) end
+        else
+            local w = armedWeapon()
+            if w then Ensign.armWeapon(-1) else for i = 0, 3 do Ensign.clearAiming(i) end end
+        end
+    end
     -- deselecting works from any group while units are selected
     if not G.detail and not G.targeting and selectedCrewCount() > 0 and not (onShip and focus and focus.kind == "room")
        and (I.pressed("room_deselect_all") or I.pressed("crew_deselect_all")) and G.panel ~= "crew" then
@@ -765,7 +828,8 @@ function G.update()
         if G.targeting == "bomb" then hint[#hint + 1] = { "group_enemy", "Other ship" } end
     elseif (G.panel == "ship" or G.panel == "enemy") or roomUnder then
         if nsel > 0 then
-            hint[#hint + 1] = { "room_send", "Send " .. nsel .. " here" }; hint[#hint + 1] = { "room_detail", "Pick more units" }; hint[#hint + 1] = { "room_deselect_all", "Deselect all" }
+            hint[#hint + 1] = { "room_send", nsel == 1 and "Send here" or string.format("Send %d here", nsel) }
+            hint[#hint + 1] = { "room_detail", "Pick more units" }; hint[#hint + 1] = { "room_deselect_all", "Deselect all" }
         else
             hint[#hint + 1] = { "room_open", "Units & doors" }
         end
@@ -778,6 +842,8 @@ function G.update()
         elseif kind == "mind" then hint[#hint + 1] = { "system_use", "Mind control" }
         elseif kind == "teleporter" then hint[#hint + 1] = { "system_use", "Teleport (again: return)" }
         else hint[#hint + 1] = { "system_off", "Unpower" } end
+    elseif focus and focus.kind == "doorbtn" then
+        hint[#hint + 1] = { "ui_select", focus.id == 0 and "Open all doors" or "Close all doors" }
     elseif slotFocus then
         local aLabel = "Power on (hold to move)"
         if slotFocusPowered then aLabel = (focus.extra == 3) and "Aim (hold to move)" or "Power off (hold to move)" end

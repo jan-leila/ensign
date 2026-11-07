@@ -222,6 +222,11 @@ int l_fireAt(lua_State* L) {
 }
 int l_swapWeapons(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::swap_weapons((int)luaL_checkinteger(L, 1), (int)luaL_checkinteger(L, 2))); return 1; }
 int l_swapDrones(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::swap_drones((int)luaL_checkinteger(L, 1), (int)luaL_checkinteger(L, 2))); return 1; }
+int l_clearAiming(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::clear_aiming((int)luaL_checkinteger(L, 1))); return 1; }
+int l_armamentHotkey(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::armament_hotkey((int)luaL_checkinteger(L, 1), (int)luaL_checkinteger(L, 2))); return 1; }
+int l_doorBytes(lua_State* L) { lua_pushstring(L, game::door_bytes((int)luaL_checkinteger(L, 1), (int)luaL_checkinteger(L, 2), (int)luaL_checkinteger(L, 3)).c_str()); return 1; }
+int l_crewBoxCrew(lua_State* L) { lua_pushinteger(L, game::crew_box_crew((int)luaL_checkinteger(L, 1))); return 1; }
+int l_doorsAll(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::doors_all(lua_toboolean(L, 1))); return 1; }
 int l_moveCrew(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::move_crew((int)luaL_checkinteger(L, 1), (int)luaL_checkinteger(L, 2))); return 1; }
 int l_door(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::door(lua_toboolean(L, 1), (int)luaL_checkinteger(L, 2), lua_toboolean(L, 3))); return 1; }
 int l_setPaused(lua_State* L) { logic_ready(); lua_pushboolean(L, logic::set_paused(lua_toboolean(L, 1))); return 1; }
@@ -268,7 +273,7 @@ const luaL_Reg kFuncs[] = {
     {"screen", l_screen}, {"hitboxes", l_hitboxes}, {"shipOrigins", l_shipOrigins},
     {"armamentHover", l_armamentHover}, {"sysboxHover", l_sysboxHover}, {"liftSubsystems", l_liftSubsystems}, {"time", l_time},
     {"logicStatus", l_logicStatus}, {"sysPower", l_sysPower}, {"weaponPower", l_weaponPower}, {"dronePower", l_dronePower},
-    {"armWeapon", l_armWeapon}, {"roomCenter", l_roomCenter}, {"fireAt", l_fireAt}, {"swapWeapons", l_swapWeapons}, {"swapDrones", l_swapDrones},
+    {"armWeapon", l_armWeapon}, {"roomCenter", l_roomCenter}, {"fireAt", l_fireAt}, {"swapWeapons", l_swapWeapons}, {"swapDrones", l_swapDrones}, {"clearAiming", l_clearAiming}, {"armamentHotkey", l_armamentHotkey}, {"doorsAll", l_doorsAll}, {"crewBoxCrew", l_crewBoxCrew}, {"doorBytes", l_doorBytes},
     {"moveCrew", l_moveCrew}, {"door", l_door}, {"setPaused", l_setPaused}, {"paused", l_paused},
     {"specialArmed", l_specialArmed}, {"armTeleporter", l_armTeleporter}, {"armTeleporterRaw", l_armTeleporterRaw}, {"armHacking", l_armHacking}, {"armMind", l_armMind},
     {"combatClick", l_combatClick}, {"hackRoom", l_hackRoom}, {"cloak", l_cloak}, {"battery", l_battery},

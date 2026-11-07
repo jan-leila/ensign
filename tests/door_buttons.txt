@@ -1,0 +1,50 @@
+wait 6
+focus button 0
+press a
+wait 0.5
+doordump
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 0.5
+doordump
+wait 3
+focus choice 0
+press a
+wait 0.5
+doordump
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+log --- subsystems group reaches the door buttons; A opens / closes all doors
+press pause
+panel subsystems
+wait 0.3
+probe
+dump
+nav right
+wait 0.3
+nav right
+wait 0.3
+dump
+nav right
+wait 0.3
+dump
+shot door_buttons
+press a
+wait 0.5
+doordump
+wait 0.5
+dump
+nav up
+wait 0.3
+dump
+press a
+wait 0.5
+doordump
+wait 0.5
+dump
+end

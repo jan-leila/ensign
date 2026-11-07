@@ -2,10 +2,11 @@
 -- options, events, store, ship screens, star map, dialogs). The native side
 -- enumerates the clickable rectangles; this module navigates and clicks them.
 --
--- Star map: only the beacons you can actually jump to are targets. The d-pad steps
--- between them; the stick points at them (the beacon whose bearing from your current
--- beacon best matches the stick direction lights up). A jumps, X waits, Y toggles the
--- distress beacon, B closes the map.
+-- Star map: only the beacons you can actually jump to are targets, plus the map's own
+-- buttons. The d-pad steps between them; a flick of the stick moves to the target whose
+-- bearing from the current frame best matches the stick direction, and the next flick
+-- carries on from there. The sector list (choosing the next sector) works the same way.
+-- A jumps, X waits, Y toggles the distress beacon, B closes the map.
 local E = ENSIGN
 local M = {}
 E.menus = M
@@ -25,7 +26,7 @@ end
 
 -- Which hits are navigable on each screen (nil = all)
 local navigable = {
-    starmap = kinds("location", "sector"),
+    starmap = kinds("location", "sector", "button", "close"),
 }
 -- Preferred kinds to land on when a screen (or a tab) opens
 local preferred = {
@@ -91,6 +92,11 @@ local function clickFocus(button, opts)
     end
 end
 
+local function findHit(kind, id)
+    for _, h in ipairs(M.hits) do if h.kind == kind and (id == nil or h.id == id) then return h end end
+    return nil
+end
+
 -- Activate a hit through the game's own handler for that screen (no mouse emulation);
 -- returns false when there is no direct route, so the caller clicks instead.
 local function activate(screen, h)
@@ -98,7 +104,8 @@ local function activate(screen, h)
     local cx, cy = E.center(h)
     if screen == "event" and h.kind == "choice" then return Ensign.choiceClick(cx, cy) end
     if screen == "starmap" then
-        if h.kind == "close" then return Ensign.mapClose() end
+        -- the sector list has its own close button; the map's close button closes the map
+        if h.kind == "close" then if findHit("sector") then return Ensign.mapClick(cx, cy) end return Ensign.mapClose() end
         if h.kind == "location" or h.kind == "button" or h.kind == "sector" then return Ensign.mapClick(cx, cy) end
     end
     if screen == "store" then
@@ -127,11 +134,6 @@ local function cycleTabs(dir)
     return true
 end
 
-local function findHit(kind, id)
-    for _, h in ipairs(M.hits) do if h.kind == kind and (id == nil or h.id == id) then return h end end
-    return nil
-end
-
 -- star map helpers: bit 1 = current beacon, bit 2 = reachable from it
 local function isCurrent(h) return h.kind == "location" and h.extra % 2 == 1 end
 local function isReachable(h) return h.kind == "location" and (h.extra // 2) % 2 == 1 end
@@ -150,6 +152,7 @@ function M.update(screen)
     for _, h in ipairs(filter and N.filterKind(M.hits, filter) or M.hits) do
         local ok = equipVisible(h, crewCount)
         if ok and h.kind == "location" and not isReachable(h) then ok = false end
+        if ok and screen == "starmap" and (h.kind == "button" or h.kind == "close") and h.enabled == false then ok = false end
         if ok then cands[#cands + 1] = h end
     end
     if screen ~= M.lastScreen then
@@ -181,22 +184,26 @@ function M.update(screen)
     -- analog cursor
     C.updateFree()
 
-    -- star map: the stick points at a beacon
+    -- star map: a flick of the stick moves to the beacon / sector / button in that
+    -- direction from the frame (one move per flick; let the stick return to go again)
     local stickDrives = false
     if screen == "starmap" then
         local sx, sy, mag = I.navAxis()
-        local here = currentBeacon(M.hits)
-        if mag > 0.5 and here then
-            local hx, hy = E.center(here)
-            local pick = N.pickAngle(hx, hy, cands, math.atan(sy, sx), math.rad(55), isReachable)
-            if pick and not (C.focus and E.sameHit(pick, C.focus)) then
-                C.mode = "snap"
-                C.snapTo(pick)
-                E.feedback.tick()
+        if mag > 0.5 then
+            if not M.stickHeld then
+                local from = C.focus or currentBeacon(M.hits)
+                local fx, fy = from and E.center(from) or C.x, from and select(2, E.center(from)) or C.y
+                local pick = N.pickAngle(fx, fy, cands, math.atan(sy, sx), math.rad(55),
+                                         function(h) return (h.kind == "location" or h.kind == "sector") and not (C.focus and E.sameHit(h, C.focus)) end)
+                if pick then C.mode = "snap"; C.snapTo(pick); E.feedback.tick() end
             end
+            M.stickHeld = true
             stickDrives = true
+        elseif mag < 0.35 then
+            M.stickHeld = false
+        else
+            stickDrives = M.stickHeld
         end
-        M.stickHeld = stickDrives
     end
 
     local dir = I.navDirection()
@@ -246,7 +253,23 @@ function M.update(screen)
             local d = findHit("button", 3)
             if d and d.enabled ~= false then activateOrClick(screen, d); if C.focus then C.snapTo(C.focus) end end
         end
-    elseif I.pressed("menu_alt") or I.pressed("cursor_rclick") then
+        if I.pressed("map_next_sector") then
+            local nb = findHit("button", 4)
+            if nb and nb.enabled ~= false then activateOrClick(screen, nb) end
+        end
+        if I.pressed("map_cancel") then
+            local cl = findHit("close")
+            if cl then activateOrClick(screen, cl) end
+        end
+    elseif screen == "event" and not M.carry then
+        for n = 1, 8 do
+            if I.pressed("choice_" .. n) then
+                local ch = findHit("choice", n - 1)
+                if ch then C.snapTo(ch); activateOrClick(screen, ch) end
+            end
+        end
+    end
+    if screen ~= "starmap" and (I.pressed("menu_alt") or I.pressed("cursor_rclick")) then
         clickFocus(3)
     end
     if M.carry and I.pressed("menu_put_back") then
@@ -263,10 +286,9 @@ function M.update(screen)
             local b = findHit("button", 2)  -- "back" to the main menu
             if b then C.snapTo(b); C.click(1) else C.key(E.KEY.ESC) end
         elseif screen == "starmap" then
-            if not Ensign.mapClose() then
-                local cl = findHit("close")
-                if cl then C.snapTo(cl); C.click(1) else C.key(E.KEY.ESC) end
-            end
+            local cl = findHit("close")
+            if cl then activateOrClick(screen, cl)
+            elseif not Ensign.mapClose() then C.key(E.KEY.ESC) end
         elseif screen == "store" or screen == "shipscreens" then
             local cl = findHit("close", 200) or findHit("close")
             if cl then C.snapTo(cl); C.click(1) else C.key(E.KEY.ESC) end
@@ -282,8 +304,12 @@ function M.update(screen)
     local hint = { { "nav_up", "Move cursor" }, { "menu_select", "Select" } }
     if screen == "confirm" then hint[#hint + 1] = { "menu_back", "No" }
     elseif screen == "starmap" then
-        hint = { { "nav_up", "Pick beacon" }, { "menu_select", "Jump there" }, { "menu_alt", "Wait here" },
-                 { "menu_info", "Distress beacon" }, { "menu_back", "Close map" } }
+        if findHit("sector") then
+            hint = { { "nav_up", "Pick sector" }, { "menu_select", "Choose" }, { "menu_back", "Cancel" } }
+        else
+            hint = { { "nav_up", "Pick beacon" }, { "menu_select", "Jump there" }, { "menu_alt", "Wait here" },
+                     { "menu_info", "Distress beacon" }, { "menu_back", "Close map" } }
+        end
     elseif screen == "store" or screen == "shipscreens" then
         if M.carry then hint = { { "nav_up", "Move item" }, { "menu_drop", "Place here" }, { "menu_put_back", "Put back" } }
         else

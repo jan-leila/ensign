@@ -85,7 +85,7 @@ local function dump()
     emit("screen=" .. Ensign.screen() .. gameState() .. " cursor=" .. math.floor(E.cursor.x) .. "," .. math.floor(E.cursor.y)
          .. " mode=" .. E.cursor.mode .. " panel=" .. tostring(E.game.panel)
          .. " focus=" .. (E.cursor.focus and (E.cursor.focus.kind .. "#" .. E.cursor.focus.id) or "nil")
-         .. " steam=" .. tostring(Ensign.status()) .. " connected=" .. tostring(Ensign.connected()))
+         .. " steam=" .. tostring(Ensign.status()) .. " connected=" .. tostring(Ensign.connected()) .. " device=" .. tostring(E.input.lastDevice))
     local hits = Ensign.hitboxes()
     for _, h in ipairs(hits) do
         emit(string.format("  hit %-10s id=%-3d x=%4d y=%4d w=%3d h=%3d extra=%d enabled=%s label=%s",
@@ -140,6 +140,44 @@ function D.update()
         end
     elseif cmd == "stick" then E.input.virtualAxis(tonumber(a1) or 0, tonumber(a2) or 0, 3); emit("stick " .. rest)
     elseif cmd == "move" then E.cursor.mode = "free"; E.cursor.focus = nil; E.cursor.moveTo(tonumber(a1) or 0, tonumber(a2) or 0); emit("move " .. rest)
+    elseif cmd == "doorbytes" then   -- doorbytes <i>: raw object bytes next to the fields Hyperspace reports
+        local i = tonumber(a1) or 0
+        local ok, err = pcall(function()
+            local d = E.playerShip().ship.vDoorList[i]
+            emit(string.format("doorbytes %d lua: room=%s,%s open=%s id=%s x=%s y=%s vert=%s hacked=%s", i, tostring(d.iRoom1), tostring(d.iRoom2), tostring(d.bOpen), tostring(d.iDoorId), tostring(d.x), tostring(d.y), tostring(d.bVertical), tostring(d.iHacked)))
+        end)
+        if not ok then emit("doorbytes lua ERROR " .. tostring(err)) end
+        emit("doorbytes " .. i .. " head: " .. Ensign.doorBytes(i, 0, 64))
+        emit("doorbytes " .. i .. " tail: " .. Ensign.doorBytes(i, 0x1c0, 0xa8))
+    elseif cmd == "doordump" then   -- door open states as the game's own objects report them
+        local ok, err = pcall(function()
+            local list = E.playerShip().ship.vDoorList
+            local open, txt = 0, ""
+            for i = 0, list:size() - 1 do local d = list[i]; if d and d.bOpen then open = open + 1; txt = txt .. " " .. i end end
+            emit("doordump open=" .. open .. "/" .. list:size() .. " ids:" .. txt)
+        end)
+        if not ok then emit("doordump ERROR " .. tostring(err)) end
+    elseif cmd == "sysdump" then   -- sysdump <sysId>: the system's state as the game sees it
+        local ok, err = pcall(function()
+            local sys = E.playerShip():GetSystem(tonumber(a1))
+            local txt = "sysdump " .. a1
+            for _, f in ipairs({ "iSystemType", "bNeedsPower", "iLockCount", "iHackEffect", "bHacked", "bOnFire", "bBreached", "bManned", "iActiveManned", "bBoostable", "bExploded", "bFriendlyFire" }) do
+                local okf, v = pcall(function() return sys[f] end); txt = txt .. " " .. f .. "=" .. (okf and tostring(v) or "?")
+            end
+            pcall(function() txt = txt .. " power=" .. tostring(sys.powerState.first) .. "/" .. tostring(sys.powerState.second) end)
+            pcall(function() txt = txt .. " health=" .. tostring(sys.healthState.first) .. "/" .. tostring(sys.healthState.second) end)
+            pcall(function() txt = txt .. " functioning=" .. tostring(sys:Functioning()) .. " locked=" .. tostring(sys:GetLocked()) .. " effPower=" .. tostring(sys:GetEffectivePower()) end)
+            emit(txt)
+        end)
+        if not ok then emit("sysdump ERROR " .. tostring(err)) end
+    elseif cmd == "rawkey" then   -- rawkey <sdl key code>: a real key press through the game (exercises the Hyperspace key events)
+        local k = tonumber(a1) or 0
+        Ensign.keyDown(k); emit("rawkey down " .. k)
+        table.insert(lines, idx, "rawkey_up " .. k)   -- released on the next tick
+        waitUntil = E.time + 0.15
+    elseif cmd == "rawkey_up" then Ensign.keyUp(tonumber(a1) or 0); emit("rawkey up " .. a1)
+    elseif cmd == "kbd" then   -- kbd <sdl key code> [up]: a keyboard key as the game would report it
+        local r = E.input.onKey(tonumber(a1) or 0, a2 ~= "up"); emit("kbd " .. rest .. " -> " .. tostring(r))
     elseif cmd == "click" then E.cursor.click(tonumber(a1) or 1); emit("click " .. (a1 or "1"))
     elseif cmd == "key" then E.cursor.key(tonumber(a1)); emit("key " .. a1)
     elseif cmd == "focus" and a1 == "room" and a2 == "boarders" then   -- enemy room holding our first crew member over there

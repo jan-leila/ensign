@@ -1,0 +1,24 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+wait 1
+dump
+shot hangar
+log --- walk right from the ship arrows: should reach the difficulty buttons
+focus button 5
+wait 0.3
+dump
+nav right
+wait 0.3
+dump
+nav right
+wait 0.3
+dump
+nav right
+wait 0.3
+dump
+nav down
+wait 0.3
+dump
+end

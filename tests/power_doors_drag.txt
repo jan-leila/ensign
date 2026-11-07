@@ -63,8 +63,10 @@ panel systems
 wait 0.3
 focus sysbox 1
 wait 0.3
+dump
 press a
 wait 0.4
+dump
 press pause
 wait 30
 press y

@@ -36,6 +36,8 @@ void hitboxes(std::vector<Hit>& out);
 bool mouse_is_hidden();
 int  player_ship_x(); int player_ship_y();      // CommandGui.shipPosition
 bool enemy_ship_origin(int& x, int& y);          // combatControl.position + targetPosition
+std::string door_bytes(int index, int from, int count);
+int crew_box_crew(int boxIndex);
 bool armament_hover(int systemId, int index);     // ArmamentBox.mouseHover (calibration aid)
 bool sysbox_hover(int systemId);
 void lift_subsystems(int dy, int frameDx, int frameDy);

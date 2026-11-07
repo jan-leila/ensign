@@ -1109,8 +1109,7 @@ struct CrewTarget
 struct Door
 {
   CrewTarget _base;
-  uint8_t garbage[4]; // Crew Target wasn't seen as 16 even though it should of been
-  Selectable _selectable;
+  Selectable _selectable;   // 12 bytes here: the derived fields reuse its tail padding (verified against the live object: iRoom1 at 0x1c, bOpen at 0x24)
   int iRoom1;
   int iRoom2;
   bool bOpen;
@@ -1122,10 +1121,9 @@ struct Door
   GL_Primitive *highlightPrimitive;
   Animation doorAnim;
   Animation doorAnimLarge;
-  int iDoorId;
+  int iDoorId;              // 0x1c8 in the live object
   int baseHealth;
   int health;
-  uint8_t gap_ex_1[4];
   AnimationTracker forcedOpen;
   AnimationTracker gotHit;
   int doorLevel;

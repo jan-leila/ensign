@@ -230,6 +230,33 @@ function D.update()
         E.input.lastDevice = "pad"
         emit("fakepad " .. E.input.fakeFamily)
     elseif cmd == "dump" then dump()
+    elseif cmd == "wdump" then   -- weapon internals + live projectile count (firing diagnostics)
+        local ok, err = pcall(function()
+            local ship = E.playerShip()
+            local s = "wdump"
+            pcall(function() s = s .. " projectiles=" .. tostring(Hyperspace.App.world.space.projectiles:size()) end)
+            pcall(function() s = s .. " paused=" .. tostring(Hyperspace.App.gui.bPaused) end)
+            pcall(function() local e = Hyperspace.ships.enemy; s = s .. string.format(" enemyPos=%.0f,%.0f", e.ship.position.x, e.ship.position.y) end)
+            pcall(function() s = s .. string.format(" playerPos=%.0f,%.0f", ship.ship.position.x, ship.ship.position.y) end)
+            pcall(function() local ws = ship.weaponSystem; s = s .. " ws[functioning=" .. tostring(ws:Functioning()) .. " power=" .. tostring(ws.powerState.first) .. "/" .. tostring(ws.powerState.second) .. " hacked=" .. tostring(ws.iHackEffect) .. " locked=" .. tostring(ws:GetLocked()) .. " missiles=" .. tostring(ws.missile_count) .. "]" end)
+            for i = 0, ship.weaponSystem.weapons:size() - 1 do
+                local w = ship.weaponSystem.weapons[i]
+                s = s .. string.format(" w%d[%s", i, w.blueprint.name)
+                for _, f in ipairs({ "powered", "fireWhenReady", "autoFiring", "chargeLevel", "targetId", "iAmmo", "numShots", "lastProjectileId", "shotsFiredAtTarget", "boostLevel" }) do
+                    local okf, v = pcall(function() return w[f] end)
+                    s = s .. " " .. f .. "=" .. (okf and tostring(v) or "?")
+                end
+                pcall(function() s = s .. " cd=" .. string.format("%.1f/%.1f", w.cooldown.first, w.cooldown.second) end)
+                pcall(function() s = s .. " targets=" .. tostring(w.targets:size()) end)
+                pcall(function() local t = w.targets[0]; s = s .. string.format(" t0=%.0f,%.0f", t.x, t.y) end)
+                pcall(function() s = s .. " shipTarget=" .. tostring(w.currentShipTarget ~= nil) end)
+                pcall(function() s = s .. " queued=" .. tostring(w.queuedProjectiles:size()) end)
+                pcall(function() s = s .. " ready=" .. tostring(w:ReadyToFire()) end)
+                s = s .. "]"
+            end
+            emit(s)
+        end)
+        if not ok then emit("wdump ERROR " .. tostring(err)) end
     elseif cmd == "log" then emit(rest)
     elseif cmd == "fail" then emit("FAIL " .. rest)
     elseif cmd == "end" then D.active = false emit("script finished")

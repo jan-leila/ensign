@@ -1,0 +1,43 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+log --- force a hostile encounter
+event PIRATE
+wait 2
+focus choice 0
+press a
+wait 2
+wait_screen game 8
+press group_enemy
+wait 0.5
+log --- live fire: power slot 1, arm it, aim at enemy room 2, then watch unpaused (the burst laser needs 3 points and must fire)
+logic weaponPower 1 true
+wait 0.3
+logic armWeapon 1
+wait 0.3
+logic fireRoom 1 2
+wait 0.3
+wdump
+wait 4
+wdump
+wait 4
+wdump
+wait 4
+wdump
+wait 3
+wdump
+wait 3
+wdump
+end

@@ -1,0 +1,61 @@
+wait 6
+focus button 0
+press a
+wait_screen shipbuilder 10
+focus button 1
+press a
+wait 3
+focus choice 0
+press a
+wait 1
+press_if event a
+wait 1
+press_if event a
+wait_screen game 6
+fakepad xbox
+shot game_ship
+log --- force a hostile encounter
+event PIRATE
+wait 2
+dump
+focus choice 0
+press a
+wait 2
+dump
+shot combat_event
+wait_screen game 8
+dump
+log --- enemy panel
+press group_enemy
+wait 0.5
+log --- live fire through the pad path: A on slot 1 powers and aims, A on an enemy room targets
+wdump
+panel weapons
+wait 0.3
+focus armament 1
+wait 0.3
+press a
+wait 0.8
+dump
+wdump
+nav right
+wait 0.3
+nav down
+wait 0.3
+press a
+wait 0.8
+dump
+wdump
+wait 3
+wdump
+wait 3
+wdump
+wait 3
+wdump
+wait 3
+wdump
+wait 3
+wdump
+wait 3
+wdump
+end

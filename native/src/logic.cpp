@@ -183,12 +183,24 @@ bool fire_at(int targetShipId, int npoints, const float* xy) {
     if (!g || npoints < 1 || npoints > 2) return false;
     if (!g->combatControl.weapControl.armedWeapon) return false;
     SYM(fire, void (*)(WeaponControl*, VecPointf*, int, bool), "_ZN13WeaponControl4FireESt6vectorI6PointfSaIS1_EEib");
-    Pointf pts[2];
-    for (int i = 0; i < npoints; i++) { pts[i].x = xy[i * 2]; pts[i].y = xy[i * 2 + 1]; }
+    // The game hands the weapon one aim point per shot (a three-shot burst laser gets
+    // the clicked point three times; a charge weapon one per stored charge) and the
+    // weapon only fires once the point count matches. A single point is replicated
+    // the same way; a beam keeps its two end points.
+    ProjectileFactory* w = g->combatControl.weapControl.armedWeapon;
+    int n = npoints;
+    if (npoints == 1 && sane(w)) {
+        int shots = (sane(w->blueprint) && w->blueprint->chargeLevels > 1) ? w->chargeLevel : w->numShots;
+        if (shots > n) n = shots;
+        if (n > 64) n = 64;
+    }
     // std::vector<Pointf> by value: the ABI passes the address of a temporary
-    Pointf* buf = (Pointf*)malloc(sizeof(Pointf) * 2);
-    memcpy(buf, pts, sizeof(Pointf) * npoints);
-    VecPointf v = { buf, buf + npoints, buf + 2 };
+    Pointf* buf = (Pointf*)malloc(sizeof(Pointf) * n);
+    for (int i = 0; i < n; i++) {
+        int src = (npoints == 1) ? 0 : i;
+        buf[i].x = xy[src * 2]; buf[i].y = xy[src * 2 + 1];
+    }
+    VecPointf v = { buf, buf + n, buf + n };
     fire(&g->combatControl.weapControl, &v, targetShipId, false);
     if (v.b == buf) free(buf);   // untouched: still ours (a swap would have handed it to the game)
     return true;

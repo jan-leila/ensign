@@ -644,6 +644,7 @@ bool armament_hover(int systemId, int index) {
 // once, so the original positions are remembered per box and re-applied every frame;
 // dy = 0 restores the stock layout.
 static std::map<void*, int> g_subBaseY;
+static std::map<void*, int> g_subButtonRel;   // door / battery button origin relative to the box (the game computes it once)
 static int g_subFrameBaseX = INT_MIN, g_subFrameBaseY = INT_MIN;
 static int g_subLiftApplied = INT_MIN, g_subFrameDxApplied = 0, g_subFrameDyApplied = 0;
 static GL_Primitive* g_origSubBox = nullptr;   // the game's own frame primitive
@@ -694,6 +695,16 @@ void lift_subsystems(int dy, int frameDx, int frameDy) {
         if (t != 6 && t != 7 && t != 8 && t != 12) continue;   // pilot, sensors, doors, battery
         auto it = g_subBaseY.find(b);
         if (it == g_subBaseY.end()) it = g_subBaseY.emplace(b, b->location.y).first;
+        // The door and battery boxes draw their buttons from an origin they compute once from
+        // their location, so it has to follow the lift too; remember it relative to the box.
+        Point* origin = nullptr;
+        if (t == 8) origin = &((DoorBox*)b)->buttonOffset;
+        else if (t == 12) origin = &((BatteryBox*)b)->buttonOffset;
+        if (origin && origin->y != 0) {
+            auto rel = g_subButtonRel.find(b);
+            if (rel == g_subButtonRel.end()) rel = g_subButtonRel.emplace(b, origin->y - b->location.y).first;
+            origin->y = it->second - dy + rel->second;
+        }
         b->location.y = it->second - dy;
     }
 }

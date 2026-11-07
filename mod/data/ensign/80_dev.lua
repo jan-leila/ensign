@@ -85,7 +85,7 @@ local function dump()
     emit("screen=" .. Ensign.screen() .. gameState() .. " cursor=" .. math.floor(E.cursor.x) .. "," .. math.floor(E.cursor.y)
          .. " mode=" .. E.cursor.mode .. " panel=" .. tostring(E.game.panel)
          .. " focus=" .. (E.cursor.focus and (E.cursor.focus.kind .. "#" .. E.cursor.focus.id) or "nil")
-         .. " steam=" .. tostring(Ensign.status()) .. " connected=" .. tostring(Ensign.connected()) .. " device=" .. tostring(E.input.lastDevice))
+         .. " steam=" .. tostring(Ensign.status()) .. " connected=" .. tostring(Ensign.connected()) .. " device=" .. tostring(E.input.lastDevice) .. " mouseHidden=" .. tostring(E.mouseHidden) .. " cand=" .. (E.menus.stickCandidate and (E.menus.stickCandidate.kind .. "#" .. E.menus.stickCandidate.id) or "nil"))
     local hits = Ensign.hitboxes()
     for _, h in ipairs(hits) do
         emit(string.format("  hit %-10s id=%-3d x=%4d y=%4d w=%3d h=%3d extra=%d enabled=%s label=%s",
@@ -138,7 +138,9 @@ function D.update()
                 emit("logic " .. rest .. " -> " .. (r[1] and table.concat(vals, ",") or ("ERROR " .. tostring(r[2]))))
             end
         end
-    elseif cmd == "stick" then E.input.virtualAxis(tonumber(a1) or 0, tonumber(a2) or 0, 3); emit("stick " .. rest)
+    elseif cmd == "stick" then   -- stick <x> <y> [ticks]: hold the left stick there for that many frames (default 3)
+        local a3 = rest:match("^%S*%s*%S*%s*(%S*)")
+        E.input.virtualAxis(tonumber(a1) or 0, tonumber(a2) or 0, tonumber(a3) or 3); emit("stick " .. rest)
     elseif cmd == "move" then E.cursor.mode = "free"; E.cursor.focus = nil; E.cursor.moveTo(tonumber(a1) or 0, tonumber(a2) or 0); emit("move " .. rest)
     elseif cmd == "doorbytes" then   -- doorbytes <i>: raw object bytes next to the fields Hyperspace reports
         local i = tonumber(a1) or 0

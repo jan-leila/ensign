@@ -17,32 +17,27 @@ log --- wait for the FTL drive then open the map
 press jump
 wait 1
 dump
-log --- flick right, release, flick down: the second flick continues from the new frame
-stick 1 0
-wait 0.3
+log --- pointing: holding the stick highlights a candidate but the frame stays
+stick 1 0 30
+wait 0.2
 dump
+wait 0.4
+dump
+log --- a flick (quick return) commits the candidate; the next flick continues from there
 stick 0 0
 wait 0.3
-stick 0 -1
-wait 0.3
 dump
-stick 0 0
-wait 0.3
-log --- holding the stick does not keep jumping
-stick -1 0 30
-wait 0.3
+stick 0 -1 4
+wait 0.4
 dump
+stick 0 -1 4
+wait 0.4
+dump
+log --- a slow return cancels: ease back through half deflection
+stick 1 0 6
+stick 0.4 0 14
+stick 0.1 0 2
 wait 0.5
-dump
-stick 0 0
-wait 0.3
-log --- the map buttons are reachable: down from the beacons reaches the buttons, map_cancel closes
-nav down
-wait 0.3
-nav down
-wait 0.3
-nav down
-wait 0.3
 dump
 press map_cancel
 wait 0.5

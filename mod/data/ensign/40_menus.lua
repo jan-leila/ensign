@@ -3,9 +3,10 @@
 -- enumerates the clickable rectangles; this module navigates and clicks them.
 --
 -- Star map: only the beacons you can actually jump to are targets, plus the map's own
--- buttons. The d-pad steps between them; a flick of the stick moves to the target whose
--- bearing from the current frame best matches the stick direction, and the next flick
--- carries on from there. The sector list (choosing the next sector) works the same way.
+-- buttons. The d-pad steps between them. The stick points: while it is held, the beacon
+-- in that direction from the frame is highlighted; letting the stick snap back (a flick)
+-- moves the frame there, so the next flick carries on from the new beacon, while easing
+-- it back slowly just drops the highlight. The sector list works the same way.
 -- A jumps, X waits, Y toggles the distress beacon, B closes the map.
 local E = ENSIGN
 local M = {}
@@ -17,6 +18,10 @@ M.screen = "none"
 M.lastScreen = "none"
 M.hint = {}
 M.stickHeld = false
+M.stickCandidate = nil     -- the beacon the stick points at (committed by a flick)
+local stickAnchor = nil    -- where the pointing started from
+local stickHighT = -100    -- last time the stick was fully deflected
+local FLICK_SECONDS = 0.15 -- a return to centre faster than this commits
 
 local function kinds(...)
     local t = {}
@@ -184,26 +189,34 @@ function M.update(screen)
     -- analog cursor
     C.updateFree()
 
-    -- star map: a flick of the stick moves to the beacon / sector / button in that
-    -- direction from the frame (one move per flick; let the stick return to go again)
+    -- star map: point with the stick, flick to commit
     local stickDrives = false
     if screen == "starmap" then
         local sx, sy, mag = I.navAxis()
+        local now = E.time
         if mag > 0.5 then
-            if not M.stickHeld then
-                local from = C.focus or currentBeacon(M.hits)
-                local fx, fy = from and E.center(from) or C.x, from and select(2, E.center(from)) or C.y
-                local pick = N.pickAngle(fx, fy, cands, math.atan(sy, sx), math.rad(55),
-                                         function(h) return (h.kind == "location" or h.kind == "sector") and not (C.focus and E.sameHit(h, C.focus)) end)
-                if pick then C.mode = "snap"; C.snapTo(pick); E.feedback.tick() end
-            end
-            M.stickHeld = true
+            if not M.stickHeld then M.stickHeld = true; stickAnchor = C.focus or currentBeacon(M.hits) end
+            stickHighT = now
+            local from = stickAnchor
+            local fx, fy = from and E.center(from) or C.x, from and select(2, E.center(from)) or C.y
+            local pick = N.pickAngle(fx, fy, cands, math.atan(sy, sx), math.rad(55),
+                                     function(h) return (h.kind == "location" or h.kind == "sector") and not (from and E.sameHit(h, from)) end)
+            if pick and not (M.stickCandidate and E.sameHit(pick, M.stickCandidate)) then E.feedback.tick() end
+            M.stickCandidate = pick
             stickDrives = true
-        elseif mag < 0.35 then
-            M.stickHeld = false
-        else
-            stickDrives = M.stickHeld
+        elseif M.stickHeld then
+            if mag < 0.2 then
+                -- released: a quick return (flick) moves the frame, a slow one just lets go
+                if M.stickCandidate and (now - stickHighT) < FLICK_SECONDS then
+                    C.mode = "snap"; C.snapTo(M.stickCandidate); E.feedback.tick()
+                end
+                M.stickHeld = false; M.stickCandidate = nil; stickAnchor = nil
+            else
+                stickDrives = true
+            end
         end
+    else
+        M.stickHeld = false; M.stickCandidate = nil; stickAnchor = nil
     end
 
     local dir = I.navDirection()
@@ -333,4 +346,5 @@ function M.render()
     if C.mode == "snap" and C.focus then
         C.drawFrame(C.focus)
     end
+    if M.stickCandidate then C.drawFrame(M.stickCandidate, Graphics.GL_Color(1, 1, 1, 0.5), 2) end
 end

@@ -36,7 +36,7 @@ local function tick()
 
     -- hide the game's pointer while the controller drives a snapped selection
     pcall(function()
-        local hide = E.input.connected and E.input.lastDevice == "pad" and E.cursor.mode == "snap"
+        local hide = E.input.connected and (E.input.lastDevice == "pad" or E.input.lastDevice == "kbd") and E.cursor.mode == "snap"
         if hide or E.mouseHidden then Hyperspace.Mouse.bHideMouse = hide end   -- the game may reset it each frame
         E.mouseHidden = hide
     end)

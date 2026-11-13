@@ -15,7 +15,24 @@ The installer does all of it, is safe to re-run, and keeps backups so it can be 
 - `bash`, `curl`, `python3` (3.8+). No other Python packages are needed.
 - To build the native hook yourself: `gcc` and `make` (or use `nix develop` in the repo).
 
-## Desktop Linux
+## From a release download
+
+Releases are on GitHub (<https://github.com/jan-leila/ensign/releases>): versioned
+releases, plus a rolling **nightly** prerelease rebuilt from every push to `main`.
+Each one is `ensign-<version>-linux-x86_64.tar.gz` (with a `.sha256`), already
+containing the native hook (loads on glibc 2.31 or newer, so it works on SteamOS and
+current desktop distributions). No compiler is needed:
+
+```sh
+tar xzf ensign-<version>-linux-x86_64.tar.gz
+cd ensign-<version>
+tools/install.sh
+```
+
+Steps 2 and 4 below (unmodified FTL, enabling Steam Input) still apply.
+Maintainers: `tools/package.sh [VERSION]` builds the same tarball locally into `dist/`.
+
+## Desktop Linux (from source)
 
 1. Get the repo and (optionally) build the native hook:
 

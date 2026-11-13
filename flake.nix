@@ -10,6 +10,23 @@
         f (import nixpkgs { inherit system; config.allowUnfree = true; }));
     in {
       devShells = forAllSystems (pkgs: {
+        # Lean shell for CI release builds: portable native build, Lua lint,
+        # Steam Input regeneration and packaging only.
+        ci = pkgs.mkShell {
+          packages = with pkgs; [
+            gnumake
+            pkg-config
+            binutils
+            zig
+            lua5_3
+            lua53Packages.luacheck
+            python3
+            git
+            gnutar
+            gzip
+          ];
+        };
+
         default = pkgs.mkShell {
           packages = with pkgs; [
             # C/C++ toolchain (gcc from stdenv)

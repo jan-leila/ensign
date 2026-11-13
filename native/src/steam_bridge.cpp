@@ -234,7 +234,8 @@ const char* controller_family() {
         case k_ESteamInputType_SteamDeckController:
         case k_ESteamInputType_SteamOSHandheld: return "deck";
         case k_ESteamInputType_SteamController:
-        case k_ESteamInputType_SteamController2026: return "steam";
+        case k_ESteamInputType_SteamController2026:
+        case k_ESteamInputType_SteamFrameControllerPair: return "steam";
         default: return "generic";
     }
 }
@@ -298,8 +299,77 @@ static const char* lookup(int o, int first, const char* const (&tab)[N]) {
     return tab[i];
 }
 
+// Origins outside the per-family tables: back buttons / grips (drawn with the
+// Deck's L4/L5/R4/R5 glyphs), Switch 2, Legion Go. Steam Controller 2026
+// origins share the Deck's order, so they use kDeck.
+static const char* origin_extra(int o) {
+    typedef EInputActionOrigin O;
+    switch ((O)o) {
+        case k_EInputActionOrigin_PS5_LeftGrip: return "deck_l5";
+        case k_EInputActionOrigin_PS5_RightGrip: return "deck_r5";
+        case k_EInputActionOrigin_PS5_LeftFn: return "deck_l4";
+        case k_EInputActionOrigin_PS5_RightFn: return "deck_r4";
+        case k_EInputActionOrigin_Switch_LeftGrip_Lower: return "deck_l5";
+        case k_EInputActionOrigin_Switch_LeftGrip_Upper: return "deck_l4";
+        case k_EInputActionOrigin_Switch_RightGrip_Lower: return "deck_r5";
+        case k_EInputActionOrigin_Switch_RightGrip_Upper: return "deck_r4";
+        case k_EInputActionOrigin_Switch2_A: return "nin_a";
+        case k_EInputActionOrigin_Switch2_B: return "nin_b";
+        case k_EInputActionOrigin_Switch2_X: return "nin_x";
+        case k_EInputActionOrigin_Switch2_Y: return "nin_y";
+        case k_EInputActionOrigin_Switch2_LeftBumper: return "nin_l";
+        case k_EInputActionOrigin_Switch2_RightBumper: return "nin_r";
+        case k_EInputActionOrigin_Switch2_Plus: return "nin_plus";
+        case k_EInputActionOrigin_Switch2_Minus: return "nin_minus";
+        case k_EInputActionOrigin_Switch2_LeftTrigger_Pull:
+        case k_EInputActionOrigin_Switch2_LeftTrigger_Click: return "nin_zl";
+        case k_EInputActionOrigin_Switch2_RightTrigger_Pull:
+        case k_EInputActionOrigin_Switch2_RightTrigger_Click: return "nin_zr";
+        case k_EInputActionOrigin_Switch2_LeftStick_Move: return "stick_l";
+        case k_EInputActionOrigin_Switch2_LeftStick_Click: return "stick_l_click";
+        case k_EInputActionOrigin_Switch2_RightStick_Move: return "stick_r";
+        case k_EInputActionOrigin_Switch2_RightStick_Click: return "stick_r_click";
+        case k_EInputActionOrigin_Switch2_DPad_Move: return "dpad";
+        case k_EInputActionOrigin_Switch2_DPad_North: return "dpad_up";
+        case k_EInputActionOrigin_Switch2_DPad_South: return "dpad_down";
+        case k_EInputActionOrigin_Switch2_DPad_West: return "dpad_left";
+        case k_EInputActionOrigin_Switch2_DPad_East: return "dpad_right";
+        case k_EInputActionOrigin_Switch2_GL: return "deck_l5";
+        case k_EInputActionOrigin_Switch2_GR: return "deck_r5";
+        case k_EInputActionOrigin_LenovoLegionGo_A: return "xbox_a";
+        case k_EInputActionOrigin_LenovoLegionGo_B: return "xbox_b";
+        case k_EInputActionOrigin_LenovoLegionGo_X: return "xbox_x";
+        case k_EInputActionOrigin_LenovoLegionGo_Y: return "xbox_y";
+        case k_EInputActionOrigin_LenovoLegionGo_LB: return "xbox_lb";
+        case k_EInputActionOrigin_LenovoLegionGo_RB: return "xbox_rb";
+        case k_EInputActionOrigin_LenovoLegionGo_Menu: return "xbox_menu";
+        case k_EInputActionOrigin_LenovoLegionGo_View: return "xbox_view";
+        case k_EInputActionOrigin_LenovoLegionGo_LT_SoftPull:
+        case k_EInputActionOrigin_LenovoLegionGo_LT: return "xbox_lt";
+        case k_EInputActionOrigin_LenovoLegionGo_RT_SoftPull:
+        case k_EInputActionOrigin_LenovoLegionGo_RT: return "xbox_rt";
+        case k_EInputActionOrigin_LenovoLegionGo_LeftStick_Move: return "stick_l";
+        case k_EInputActionOrigin_LenovoLegionGo_LS: return "stick_l_click";
+        case k_EInputActionOrigin_LenovoLegionGo_RightStick_Move: return "stick_r";
+        case k_EInputActionOrigin_LenovoLegionGo_RS: return "stick_r_click";
+        case k_EInputActionOrigin_LenovoLegionGo_RightPad_Touch:
+        case k_EInputActionOrigin_LenovoLegionGo_RightPad_Swipe: return "pad_r";
+        case k_EInputActionOrigin_LenovoLegionGo_RightPad_Click: return "pad_r_click";
+        case k_EInputActionOrigin_LenovoLegionGo_DPad_Move: return "dpad";
+        case k_EInputActionOrigin_LenovoLegionGo_DPad_North: return "dpad_up";
+        case k_EInputActionOrigin_LenovoLegionGo_DPad_South: return "dpad_down";
+        case k_EInputActionOrigin_LenovoLegionGo_DPad_West: return "dpad_left";
+        case k_EInputActionOrigin_LenovoLegionGo_DPad_East: return "dpad_right";
+        case k_EInputActionOrigin_Generic_L4: return "deck_l4";
+        case k_EInputActionOrigin_Generic_R4: return "deck_r4";
+        case k_EInputActionOrigin_Generic_L5: return "deck_l5";
+        case k_EInputActionOrigin_Generic_R5: return "deck_r5";
+        default: return nullptr;
+    }
+}
+
 static const char* origin_glyph(int o) {
-    const char* g = nullptr;
+    const char* g = origin_extra(o);
     if (!g) g = lookup(o, k_EInputActionOrigin_XBox360_A, kXBox360);
     if (!g) g = lookup(o, k_EInputActionOrigin_XBoxOne_A, kXBoxOne);
     if (!g) g = lookup(o, k_EInputActionOrigin_PS4_X, kPS4);
@@ -307,6 +377,7 @@ static const char* origin_glyph(int o) {
     if (!g) g = lookup(o, k_EInputActionOrigin_Switch_A, kSwitch);
     if (!g) g = lookup(o, k_EInputActionOrigin_SteamDeck_A, kDeck);
     if (!g) g = lookup(o, k_EInputActionOrigin_SteamController_A, kSteamCtl);
+    if (!g) g = lookup(o, k_EInputActionOrigin_SteamController2026_A, kDeck);
     return g ? g : "unknown";
 }
 

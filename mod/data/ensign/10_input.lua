@@ -241,6 +241,7 @@ local FALLBACK_BUTTON = {
     deck = { a = "deck_a", b = "deck_b", x = "deck_x", y = "deck_y", lb = "deck_l1", rb = "deck_r1", lt = "deck_l2", rt = "deck_r2",
              start = "deck_menu", view = "deck_view", l3 = "stick_l_click", up = "dpad", nav_move = "stick_l", cursor_move = "pad_r" },
 }
+FALLBACK_BUTTON.steam = FALLBACK_BUTTON.deck   -- Steam Controllers use the Deck's face and shoulder glyphs
 local verbButton = {}
 for btn, verbs in pairs(I.BUTTONS) do for _, v in ipairs(verbs) do verbButton[v] = verbButton[v] or btn end end
 verbButton.doors_open, verbButton.doors_close, verbButton.autofire, verbButton.pause, verbButton.menu_pause = "l4", "r4", "l5", "r5", "r5"
@@ -258,7 +259,7 @@ function I.glyph(name)
     if not family and E.native then local _, _, f = Ensign.controllerType(); family = f end
     local tab = FALLBACK_BUTTON[family or "xbox"] or FALLBACK_BUTTON.xbox
     local btn = verbButton[name] or name
-    if family == "deck" and (btn == "l4" or btn == "r4" or btn == "l5" or btn == "r5") then return "deck_" .. btn, name end
+    if (family == "deck" or family == "steam") and (btn == "l4" or btn == "r4" or btn == "l5" or btn == "r5") then return "deck_" .. btn, name end
     if btn == "r5" then btn = "l3" end   -- pads without back buttons carry pause on the stick click
     local g = tab[btn] or (btn == "down" or btn == "left" or btn == "right") and "dpad" or nil
     if g then return g, name end

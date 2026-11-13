@@ -1,0 +1,77 @@
+# Release builds on the GitHub mirror.
+#   push to main  -> replaces the rolling "nightly" prerelease
+#   push tag v*   -> a versioned release (vX.Y.Z -> version X.Y.Z stamped into the build)
+name: release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: cachix/install-nix-action@v31
+
+      - name: Warm up the CI shell
+        run: nix develop .#ci -c true
+
+      - name: Lint Lua
+        run: nix develop .#ci -c luacheck mod/data/ensign
+
+      - name: Steam Input files match the generator
+        run: |
+          nix develop .#ci -c python3 tools/gen-steam-input.py > /dev/null
+          git diff --exit-code -- steam_input
+
+      - name: Version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=nightly-$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Package
+        run: nix develop .#ci -c tools/package.sh "${{ steps.version.outputs.version }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ensign-${{ steps.version.outputs.version }}
+          path: dist/*.tar.gz*
+
+      - name: Publish nightly
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          short="$(git rev-parse --short=7 HEAD)"
+          gh release delete nightly --yes --cleanup-tag || true
+          gh release create nightly dist/*.tar.gz dist/*.tar.gz.sha256 \
+            --prerelease --target "$GITHUB_SHA" \
+            --title "Nightly ($short)" \
+            --notes "Automatic build of \`main\` at $GITHUB_SHA. Replaced on every push; use a versioned release if you want something stable.
+
+          Install: extract, then run \`tools/install.sh\` (see docs/INSTALL.md). Linux Steam FTL 1.6.13 only; the installer downloads Hyperspace."
+
+      - name: Publish versioned release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/*.tar.gz dist/*.tar.gz.sha256 \
+            --verify-tag --title "Ensign $GITHUB_REF_NAME" --generate-notes

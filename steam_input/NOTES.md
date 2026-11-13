@@ -6,6 +6,9 @@
 - https://shared.fastly.steamstatic.com/community_assets/images/steamworks_docs/english/defenders_quest_actions.vdf and portal2_actions.vdf (real IGA files)
 - https://gist.github.com/abdimoussa98/7cb9bd259040da39d3ca5bb3ecdd46e7 (real controller_neptune config: back-button input names, trackpad/joystick modes, "key_press X, , " convention)
 
+- Controller type names (`controller_triton`, `controller_ps5_edge`, `controller_switch2_pro`, `controller_switch_joycon_pair`, `controller_legion_go(_s)`, `controller_rog_ally`, `controller_zotac_zone`, ...): strings in the Linux Steam client (`steamclient.so`, `steamui.so`), November 2026. Types with a real config in `~/.steam/steam/controller_base/`: neptune, triton, steamcontroller_gordon, xbox360, xboxone, ps3, ps4, ps5, switch_pro, switch_joycon_left/right, legion_go_s, generic.
+- Back-button input names: `button_back_left` / `button_back_right` (+ `_upper`) appear in Steam's own templates for neptune, triton, legion_go_s, ps5 (Edge paddles) and single Joy-Cons (SL/SR); `center_trackpad` is the PlayStation touchpad source in the ps4/ps5 templates.
+
 # Unverified (not confirmed by a real example)
 
 - Deck back buttons: button_back_left_upper=L4, button_back_left=L5, button_back_right_upper=R4, button_back_right=R5 (names seen in a real config, L4/L5 assignment assumed).
@@ -13,7 +16,9 @@
 - Triggers bound via the "edge" input of a "trigger" group with Full_Press (as in the DQ example).
 - game_action binding strings use "game_action <Set> <action>, <description>" exactly as in the real DQ config (no trailing ", , ").
 - Trackpad as joystick_move for nav_move on Deck, and absolute_mouse on a right_joystick group, are not shown in a real game_action example.
-- No gyro groups, no Xbox Elite paddle bindings, no PS touchpad bindings.
+- No gyro groups.
+- Xbox Elite paddles, Legion Go back buttons: assumed to use the same four `button_back_*` names as the Deck (upper = P1/P3?). Configs for xboxelite, ps5_edge, switch2_pro, switch_joycon_pair, legion_go, rog_ally and zotac_zone have not been loaded on real hardware; Steam ignores inputs a controller does not have.
+- DualSense Edge Fn buttons are not bound (input name unknown).
 - Steam may ignore/repair configs if group sources are incomplete; tune in Steam's configurator.
 
 # Multi-binding and layout notes (action redesign)

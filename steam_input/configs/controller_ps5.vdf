@@ -464,6 +464,31 @@
 	"group"
 	{
 		"id"		"7"
+		"mode"		"absolute_mouse"
+		"inputs"
+		{
+			"click"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame cursor_click, Cursor click"
+						}
+					}
+				}
+			}
+		}
+		"gameactions"
+		{
+			"InGame"		"cursor_move"
+		}
+	}
+	"group"
+	{
+		"id"		"8"
 		"mode"		"four_buttons"
 		"inputs"
 		{
@@ -526,7 +551,7 @@
 	}
 	"group"
 	{
-		"id"		"8"
+		"id"		"9"
 		"mode"		"switches"
 		"inputs"
 		{
@@ -586,7 +611,7 @@
 	}
 	"group"
 	{
-		"id"		"9"
+		"id"		"10"
 		"mode"		"joystick_move"
 		"inputs"
 		{
@@ -611,7 +636,7 @@
 	}
 	"group"
 	{
-		"id"		"10"
+		"id"		"11"
 		"mode"		"dpad"
 		"inputs"
 		{
@@ -671,10 +696,35 @@
 	}
 	"group"
 	{
-		"id"		"11"
+		"id"		"12"
 		"mode"		"absolute_mouse"
 		"inputs"
 		{
+		}
+		"gameactions"
+		{
+			"Menus"		"menu_cursor"
+		}
+	}
+	"group"
+	{
+		"id"		"13"
+		"mode"		"absolute_mouse"
+		"inputs"
+		{
+			"click"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_click, Menu click"
+						}
+					}
+				}
+			}
 		}
 		"gameactions"
 		{
@@ -694,6 +744,7 @@
 			"4"		"joystick active"
 			"5"		"dpad active"
 			"6"		"right_joystick active"
+			"7"		"center_trackpad active"
 		}
 	}
 	"preset"
@@ -702,11 +753,12 @@
 		"name"		"Menus"
 		"group_source_bindings"
 		{
-			"7"		"button_diamond active"
-			"8"		"switch active"
-			"9"		"joystick active"
-			"10"		"dpad active"
-			"11"		"right_joystick active"
+			"8"		"button_diamond active"
+			"9"		"switch active"
+			"10"		"joystick active"
+			"11"		"dpad active"
+			"12"		"right_joystick active"
+			"13"		"center_trackpad active"
 		}
 	}
 	"settings"

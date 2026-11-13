@@ -349,15 +349,46 @@
 					}
 				}
 			}
-		}
-	}
-	"group"
-	{
-		"id"		"4"
-		"mode"		"joystick_move"
-		"inputs"
-		{
-			"click"
+			"button_back_left_upper"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame doors_open, Open all doors"
+						}
+					}
+				}
+			}
+			"button_back_right_upper"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame doors_close, Close all doors"
+						}
+					}
+				}
+			}
+			"button_back_left"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame autofire, Toggle autofire"
+						}
+					}
+				}
+			}
+			"button_back_right"
 			{
 				"activators"
 				{
@@ -370,6 +401,14 @@
 					}
 				}
 			}
+		}
+	}
+	"group"
+	{
+		"id"		"4"
+		"mode"		"joystick_move"
+		"inputs"
+		{
 		}
 		"gameactions"
 		{
@@ -582,15 +621,7 @@
 					}
 				}
 			}
-		}
-	}
-	"group"
-	{
-		"id"		"9"
-		"mode"		"joystick_move"
-		"inputs"
-		{
-			"click"
+			"button_back_right"
 			{
 				"activators"
 				{
@@ -603,6 +634,14 @@
 					}
 				}
 			}
+		}
+	}
+	"group"
+	{
+		"id"		"9"
+		"mode"		"joystick_move"
+		"inputs"
+		{
 		}
 		"gameactions"
 		{

@@ -9,6 +9,13 @@
 				"path"		"configs/controller_neptune.vdf"
 			}
 		}
+		"controller_triton"
+		{
+			"0"
+			{
+				"path"		"configs/controller_triton.vdf"
+			}
+		}
 		"controller_steamcontroller_gordon"
 		{
 			"0"
@@ -37,6 +44,13 @@
 				"path"		"configs/controller_xboxelite.vdf"
 			}
 		}
+		"controller_ps3"
+		{
+			"0"
+			{
+				"path"		"configs/controller_ps3.vdf"
+			}
+		}
 		"controller_ps4"
 		{
 			"0"
@@ -51,11 +65,60 @@
 				"path"		"configs/controller_ps5.vdf"
 			}
 		}
+		"controller_ps5_edge"
+		{
+			"0"
+			{
+				"path"		"configs/controller_ps5_edge.vdf"
+			}
+		}
 		"controller_switch_pro"
 		{
 			"0"
 			{
 				"path"		"configs/controller_switch_pro.vdf"
+			}
+		}
+		"controller_switch_joycon_pair"
+		{
+			"0"
+			{
+				"path"		"configs/controller_switch_joycon_pair.vdf"
+			}
+		}
+		"controller_switch2_pro"
+		{
+			"0"
+			{
+				"path"		"configs/controller_switch2_pro.vdf"
+			}
+		}
+		"controller_legion_go"
+		{
+			"0"
+			{
+				"path"		"configs/controller_legion_go.vdf"
+			}
+		}
+		"controller_legion_go_s"
+		{
+			"0"
+			{
+				"path"		"configs/controller_legion_go_s.vdf"
+			}
+		}
+		"controller_rog_ally"
+		{
+			"0"
+			{
+				"path"		"configs/controller_rog_ally.vdf"
+			}
+		}
+		"controller_zotac_zone"
+		{
+			"0"
+			{
+				"path"		"configs/controller_zotac_zone.vdf"
 			}
 		}
 		"controller_generic"

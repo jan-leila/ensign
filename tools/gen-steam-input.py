@@ -26,10 +26,13 @@ PHYS = {
     "DL": ("dpad", "dpad_west"), "DR": ("dpad", "dpad_east"),
     "LS": ("joystick", "click"), "RS": ("rstick", "click"),
     "RPAD": ("rpad", "click"),
-    # Steam Deck back buttons (L4/R4 = upper, L5/R5 = lower; assignment unverified)
+    "CPAD": ("cpad", "click"),   # PlayStation touchpad click
+    # Four back buttons (Deck L4/R4/L5/R5, Elite paddles P1-P4, Legion Go S, Steam
+    # Controller 2026): upper = L4/R4, lower = L5/R5 (assignment unverified)
     "L4": ("switch", "button_back_left_upper"), "R4": ("switch", "button_back_right_upper"),
     "L5": ("switch", "button_back_left"), "R5": ("switch", "button_back_right"),
-    # Steam Controller grips
+    # Two back buttons / grips (Steam Controller grips, DualSense Edge paddles,
+    # Switch 2 Pro GL/GR, ROG Ally, Zotac Zone): the lower pair of names
     "GripL": ("switch", "button_back_left"), "GripR": ("switch", "button_back_right"),
 }
 # Input order inside each group (emission order)
@@ -41,16 +44,34 @@ INPUT_ORDER = {
     "dpad": ["dpad_north", "dpad_south", "dpad_west", "dpad_east"],
 }
 
-# Controller classes.  default key -> physical list used by that class.
-# "base" applies everywhere; "deck"/"sc" add or override.
+# Controller classes:
+#   pad    plain gamepad (two sticks, d-pad, four shoulder inputs)
+#   ps     pad + touchpad (pointer + click)
+#   back4  pad + four back buttons (L4/R4 upper, L5/R5 lower)
+#   back2  pad + two back buttons / grips
+#   psb2   ps + two back paddles (DualSense Edge)
+#   deck   Steam Deck style: pad + two trackpads + four back buttons
+#   sc     original Steam Controller: one stick, two pads, two grips
+# Controller type names are the ones Steam's own client and templates use
+# (see steam_input/NOTES.md); single Joy-Cons are left to Steam's defaults (too
+# few buttons for FTL).
 CONTROLLERS = [  # (controller_type, class)
-    ("neptune", "deck"), ("steamcontroller_gordon", "sc"), ("xbox360", "pad"),
-    ("xboxone", "pad"), ("xboxelite", "pad"), ("ps4", "pad"), ("ps5", "pad"),
-    ("switch_pro", "pad"), ("generic", "pad"),
+    ("neptune", "deck"), ("triton", "deck"), ("steamcontroller_gordon", "sc"),
+    ("xbox360", "pad"), ("xboxone", "pad"), ("xboxelite", "back4"),
+    ("ps3", "pad"), ("ps4", "ps"), ("ps5", "ps"), ("ps5_edge", "psb2"),
+    ("switch_pro", "pad"), ("switch_joycon_pair", "pad"), ("switch2_pro", "back2"),
+    ("legion_go", "back4"), ("legion_go_s", "back4"), ("rog_ally", "back2"),
+    ("zotac_zone", "back2"), ("generic", "pad"),
 ]
+# Lookup order for per-class binding lists (first key present wins, then "*").
+CLASS_CHAIN = {
+    "pad": ["pad"], "ps": ["ps", "pad"], "back4": ["back4", "pad"],
+    "back2": ["back2", "pad"], "psb2": ["back2", "ps", "pad"],
+    "deck": ["deck"], "sc": ["sc"],
+}
 
 # (set, name, title, {class: [physical,...]})   class "*" = all classes
-# Per-class lists replace the "*" list for that class if present.
+# Per-class lists replace the "*" list for that class if present (see CLASS_CHAIN).
 IG, MN = "InGame", "Menus"
 BUTTONS = [
     (IG, "nav_up", "Navigate up", {"*": ["DU"]}),
@@ -88,17 +109,17 @@ BUTTONS = [
     (IG, "ui_select", "UI: select", {"*": ["A"]}),
     (IG, "ui_back", "UI: back", {"*": ["B"]}),
     (IG, "jump", "Jump (FTL jump)", {"*": ["Y"]}),
-    (IG, "pause", "Pause", {"*": ["LS"], "deck": ["R5"], "sc": ["GripR"]}),
+    (IG, "pause", "Pause", {"*": ["LS"], "deck": ["R5"], "back4": ["R5"], "sc": ["GripR"], "back2": ["GripR"]}),
     (IG, "ship_screens", "Open ship screens (systems / crew / inventory)", {"*": ["Start"]}),
     (IG, "ship_inventory", "Open inventory", {"*": ["View"]}),
     (IG, "escape_menu", "Escape menu", {}),
-    (IG, "autofire", "Toggle autofire", {"deck": ["L5"]}),
+    (IG, "autofire", "Toggle autofire", {"deck": ["L5"], "back4": ["L5"], "back2": ["LS"]}),
     (IG, "crew_all", "Select all crew", {"*": ["RS"], "deck": ["LS"], "sc": ["LS"]}),
-    (IG, "doors_open", "Open all doors", {"deck": ["L4"], "sc": ["GripL"]}),
-    (IG, "doors_close", "Close all doors", {"deck": ["R4"]}),
+    (IG, "doors_open", "Open all doors", {"deck": ["L4"], "back4": ["L4"], "sc": ["GripL"], "back2": ["GripL"]}),
+    (IG, "doors_close", "Close all doors", {"deck": ["R4"], "back4": ["R4"]}),
     (IG, "saved_positions", "Save crew positions", {}),
     (IG, "return_positions", "Return crew to saved positions", {}),
-    (IG, "cursor_click", "Cursor click", {"deck": ["RPAD"], "sc": ["RPAD"]}),
+    (IG, "cursor_click", "Cursor click", {"deck": ["RPAD"], "sc": ["RPAD"], "ps": ["CPAD"]}),
     (IG, "cursor_rclick", "Cursor right click", {}),
     # direct actions: unbound by default, there for the configurator
     (IG, "weapon_slot_1", "Weapon slot 1: select (power / aim)", {}),
@@ -149,9 +170,9 @@ BUTTONS = [
     (MN, "menu_info", "Menu info", {"*": ["Y"]}),
     (MN, "menu_tab_prev", "Previous tab", {"*": ["LB"]}),
     (MN, "menu_tab_next", "Next tab", {"*": ["RB"]}),
-    (MN, "menu_pause", "Menu pause", {"*": ["LS"], "deck": ["R5"], "sc": ["GripR"]}),
+    (MN, "menu_pause", "Menu pause", {"*": ["LS"], "deck": ["R5"], "back4": ["R5"], "sc": ["GripR"], "back2": ["GripR"]}),
     (MN, "menu_escape", "Menu escape", {"*": ["Start", "View"]}),
-    (MN, "menu_click", "Menu click", {"deck": ["RPAD"], "sc": ["RPAD"]}),
+    (MN, "menu_click", "Menu click", {"deck": ["RPAD"], "sc": ["RPAD"], "ps": ["CPAD"]}),
     (MN, "menu_rclick", "Menu right click", {}),
     (MN, "choice_1", "Event: choice 1", {}), (MN, "choice_2", "Event: choice 2", {}),
     (MN, "choice_3", "Event: choice 3", {}), (MN, "choice_4", "Event: choice 4", {}),
@@ -173,13 +194,16 @@ SET_ANALOG = {IG: ("nav_move", "cursor_move"), MN: ("menu_nav", "menu_cursor")}
 # Group sources per class and set (order = group id order, ids continue across sets)
 SRC_MODE = {"diamond": "four_buttons", "LT": "trigger", "RT": "trigger", "switch": "switches",
             "joystick": "joystick_move", "dpad": "dpad", "rstick": "absolute_mouse",
-            "lpad": "joystick_move", "rpad": "absolute_mouse"}
+            "lpad": "joystick_move", "rpad": "absolute_mouse", "cpad": "absolute_mouse"}
 SRC_PRESET = {"diamond": "button_diamond", "LT": "left_trigger", "RT": "right_trigger",
               "switch": "switch", "joystick": "joystick", "dpad": "dpad",
-              "rstick": "right_joystick", "lpad": "left_trackpad", "rpad": "right_trackpad"}
+              "rstick": "right_joystick", "lpad": "left_trackpad", "rpad": "right_trackpad",
+              "cpad": "center_trackpad"}
+_PAD = {IG: ["diamond", "LT", "RT", "switch", "joystick", "dpad", "rstick"],
+        MN: ["diamond", "switch", "joystick", "dpad", "rstick"]}
+_PS = {s: v + ["cpad"] for s, v in _PAD.items()}
 LAYOUT = {  # class -> set -> [sources]
-    "pad": {IG: ["diamond", "LT", "RT", "switch", "joystick", "dpad", "rstick"],
-            MN: ["diamond", "switch", "joystick", "dpad", "rstick"]},
+    "pad": _PAD, "back4": _PAD, "back2": _PAD, "ps": _PS, "psb2": _PS,
     "deck": {IG: ["diamond", "LT", "RT", "switch", "joystick", "dpad", "rstick", "lpad", "rpad"],
              MN: ["diamond", "switch", "joystick", "dpad", "rstick", "lpad", "rpad"]},
     # Steam Controller: left pad is a dpad group, right pad is the mouse group
@@ -189,14 +213,19 @@ LAYOUT = {  # class -> set -> [sources]
 # analog action attached to a source's group (per class)
 ANALOG_SRC = {
     "pad": {"joystick": 0, "rstick": 1},
+    "ps": {"joystick": 0, "rstick": 1, "cpad": 1},
     "deck": {"joystick": 0, "rstick": 1, "lpad": 0, "rpad": 1},
     "sc": {"joystick": 0, "rpad": 1},
 }
+ANALOG_SRC.update({"back4": ANALOG_SRC["pad"], "back2": ANALOG_SRC["pad"], "psb2": ANALOG_SRC["ps"]})
 
 
 def phys_for(entry, cls):
     d = entry[3]
-    return d[cls] if cls in d else d.get("*", [])
+    for k in CLASS_CHAIN[cls]:
+        if k in d:
+            return d[k]
+    return d.get("*", [])
 
 
 # --------------------------------------------------------------------------

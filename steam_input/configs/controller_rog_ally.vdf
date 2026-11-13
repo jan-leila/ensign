@@ -1,0 +1,741 @@
+"controller_mappings"
+{
+	"version"		"3"
+	"revision"		"1"
+	"title"		"Ensign default - rog_ally"
+	"description"		"Default Ensign (FTL) controller layout"
+	"controller_type"		"controller_rog_ally"
+	"actions"
+	{
+		"InGame"
+		{
+			"title"		"#Set_InGame"
+			"legacy_set"		"0"
+			"StickPadGyro"
+			{
+				"nav_move"
+				{
+					"title"		"#Action_nav_move"
+					"input_mode"		"joystick_move"
+				}
+				"cursor_move"
+				{
+					"title"		"#Action_cursor_move"
+					"input_mode"		"absolute_mouse"
+				}
+			}
+			"Button"
+			{
+				"nav_up"		"#Action_nav_up"
+				"nav_down"		"#Action_nav_down"
+				"nav_left"		"#Action_nav_left"
+				"nav_right"		"#Action_nav_right"
+				"group_prev"		"#Action_group_prev"
+				"group_next"		"#Action_group_next"
+				"group_crew"		"#Action_group_crew"
+				"group_systems"		"#Action_group_systems"
+				"group_weapons"		"#Action_group_weapons"
+				"group_drones"		"#Action_group_drones"
+				"group_ship"		"#Action_group_ship"
+				"group_enemy"		"#Action_group_enemy"
+				"room_open"		"#Action_room_open"
+				"room_send"		"#Action_room_send"
+				"room_detail"		"#Action_room_detail"
+				"room_deselect_all"		"#Action_room_deselect_all"
+				"detail_toggle_unit"		"#Action_detail_toggle_unit"
+				"detail_toggle_door"		"#Action_detail_toggle_door"
+				"detail_back"		"#Action_detail_back"
+				"target_confirm"		"#Action_target_confirm"
+				"beam_point"		"#Action_beam_point"
+				"target_cancel"		"#Action_target_cancel"
+				"system_power_up"		"#Action_system_power_up"
+				"system_power_down"		"#Action_system_power_down"
+				"system_off"		"#Action_system_off"
+				"system_use"		"#Action_system_use"
+				"slot_toggle"		"#Action_slot_toggle"
+				"slot_off"		"#Action_slot_off"
+				"slot_retarget"		"#Action_slot_retarget"
+				"crew_select"		"#Action_crew_select"
+				"crew_deselect_all"		"#Action_crew_deselect_all"
+				"crew_reorder"		"#Action_crew_reorder"
+				"ui_select"		"#Action_ui_select"
+				"ui_back"		"#Action_ui_back"
+				"jump"		"#Action_jump"
+				"pause"		"#Action_pause"
+				"ship_screens"		"#Action_ship_screens"
+				"ship_inventory"		"#Action_ship_inventory"
+				"escape_menu"		"#Action_escape_menu"
+				"autofire"		"#Action_autofire"
+				"crew_all"		"#Action_crew_all"
+				"doors_open"		"#Action_doors_open"
+				"doors_close"		"#Action_doors_close"
+				"saved_positions"		"#Action_saved_positions"
+				"return_positions"		"#Action_return_positions"
+				"cursor_click"		"#Action_cursor_click"
+				"cursor_rclick"		"#Action_cursor_rclick"
+				"weapon_slot_1"		"#Action_weapon_slot_1"
+				"weapon_slot_2"		"#Action_weapon_slot_2"
+				"weapon_slot_3"		"#Action_weapon_slot_3"
+				"weapon_slot_4"		"#Action_weapon_slot_4"
+				"drone_slot_1"		"#Action_drone_slot_1"
+				"drone_slot_2"		"#Action_drone_slot_2"
+				"drone_slot_3"		"#Action_drone_slot_3"
+				"drone_slot_4"		"#Action_drone_slot_4"
+				"crew_slot_1"		"#Action_crew_slot_1"
+				"crew_slot_2"		"#Action_crew_slot_2"
+				"crew_slot_3"		"#Action_crew_slot_3"
+				"crew_slot_4"		"#Action_crew_slot_4"
+				"crew_slot_5"		"#Action_crew_slot_5"
+				"crew_slot_6"		"#Action_crew_slot_6"
+				"crew_slot_7"		"#Action_crew_slot_7"
+				"crew_slot_8"		"#Action_crew_slot_8"
+				"power_shields_up"		"#Action_power_shields_up"
+				"power_shields_down"		"#Action_power_shields_down"
+				"power_engines_up"		"#Action_power_engines_up"
+				"power_engines_down"		"#Action_power_engines_down"
+				"power_oxygen_up"		"#Action_power_oxygen_up"
+				"power_oxygen_down"		"#Action_power_oxygen_down"
+				"power_weapons_up"		"#Action_power_weapons_up"
+				"power_weapons_down"		"#Action_power_weapons_down"
+				"power_drones_up"		"#Action_power_drones_up"
+				"power_drones_down"		"#Action_power_drones_down"
+				"power_medbay_up"		"#Action_power_medbay_up"
+				"power_medbay_down"		"#Action_power_medbay_down"
+				"power_clonebay_up"		"#Action_power_clonebay_up"
+				"power_clonebay_down"		"#Action_power_clonebay_down"
+				"power_teleporter_up"		"#Action_power_teleporter_up"
+				"power_teleporter_down"		"#Action_power_teleporter_down"
+				"power_cloaking_up"		"#Action_power_cloaking_up"
+				"power_cloaking_down"		"#Action_power_cloaking_down"
+				"power_artillery_up"		"#Action_power_artillery_up"
+				"power_artillery_down"		"#Action_power_artillery_down"
+				"power_hacking_up"		"#Action_power_hacking_up"
+				"power_hacking_down"		"#Action_power_hacking_down"
+				"power_mind_up"		"#Action_power_mind_up"
+				"power_mind_down"		"#Action_power_mind_down"
+				"use_teleport"		"#Action_use_teleport"
+				"use_cloak"		"#Action_use_cloak"
+				"use_battery"		"#Action_use_battery"
+				"use_mind"		"#Action_use_mind"
+				"use_hacking"		"#Action_use_hacking"
+				"slot_clear_target"		"#Action_slot_clear_target"
+			}
+		}
+		"Menus"
+		{
+			"title"		"#Set_Menus"
+			"legacy_set"		"0"
+			"StickPadGyro"
+			{
+				"menu_nav"
+				{
+					"title"		"#Action_menu_nav"
+					"input_mode"		"joystick_move"
+				}
+				"menu_cursor"
+				{
+					"title"		"#Action_menu_cursor"
+					"input_mode"		"absolute_mouse"
+				}
+			}
+			"Button"
+			{
+				"menu_up"		"#Action_menu_up"
+				"menu_down"		"#Action_menu_down"
+				"menu_left"		"#Action_menu_left"
+				"menu_right"		"#Action_menu_right"
+				"menu_select"		"#Action_menu_select"
+				"menu_pickup"		"#Action_menu_pickup"
+				"menu_drop"		"#Action_menu_drop"
+				"menu_back"		"#Action_menu_back"
+				"menu_put_back"		"#Action_menu_put_back"
+				"menu_alt"		"#Action_menu_alt"
+				"menu_info"		"#Action_menu_info"
+				"menu_tab_prev"		"#Action_menu_tab_prev"
+				"menu_tab_next"		"#Action_menu_tab_next"
+				"menu_pause"		"#Action_menu_pause"
+				"menu_escape"		"#Action_menu_escape"
+				"menu_click"		"#Action_menu_click"
+				"menu_rclick"		"#Action_menu_rclick"
+				"choice_1"		"#Action_choice_1"
+				"choice_2"		"#Action_choice_2"
+				"choice_3"		"#Action_choice_3"
+				"choice_4"		"#Action_choice_4"
+				"choice_5"		"#Action_choice_5"
+				"choice_6"		"#Action_choice_6"
+				"choice_7"		"#Action_choice_7"
+				"choice_8"		"#Action_choice_8"
+				"map_next_sector"		"#Action_map_next_sector"
+				"map_cancel"		"#Action_map_cancel"
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"0"
+		"mode"		"four_buttons"
+		"inputs"
+		{
+			"button_A"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame room_open, Room: open units & doors"
+							"binding"		"game_action InGame room_send, Room: send selected units"
+							"binding"		"game_action InGame detail_toggle_unit, Detail: select / deselect unit"
+							"binding"		"game_action InGame detail_toggle_door, Detail: open / close door"
+							"binding"		"game_action InGame target_confirm, Targeting: confirm"
+							"binding"		"game_action InGame beam_point, Beam: choose point"
+							"binding"		"game_action InGame system_power_up, System: add power"
+							"binding"		"game_action InGame slot_toggle, Weapon / drone: power on then aim (hold: move)"
+							"binding"		"game_action InGame crew_select, Crew: select"
+							"binding"		"game_action InGame ui_select, UI: select"
+						}
+					}
+				}
+			}
+			"button_B"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame room_deselect_all, Room: deselect all units"
+							"binding"		"game_action InGame detail_back, Detail: back"
+							"binding"		"game_action InGame target_cancel, Targeting: cancel"
+							"binding"		"game_action InGame system_power_down, System: remove power"
+							"binding"		"game_action InGame slot_off, Weapon / drone: power off"
+							"binding"		"game_action InGame crew_deselect_all, Crew: deselect all"
+							"binding"		"game_action InGame ui_back, UI: back"
+						}
+					}
+				}
+			}
+			"button_X"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame room_detail, Room: show details"
+							"binding"		"game_action InGame system_off, System: turn off"
+							"binding"		"game_action InGame system_use, System: cloak / battery / hack / mind control / teleport"
+							"binding"		"game_action InGame slot_retarget, Weapon: power and aim"
+							"binding"		"game_action InGame crew_reorder, Crew: reorder"
+						}
+					}
+				}
+			}
+			"button_Y"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame jump, Jump (FTL jump)"
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"1"
+		"mode"		"trigger"
+		"inputs"
+		{
+			"edge"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame system_power_down, System: remove power"
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"2"
+		"mode"		"trigger"
+		"inputs"
+		{
+			"edge"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame system_power_up, System: add power"
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"3"
+		"mode"		"switches"
+		"inputs"
+		{
+			"left_bumper"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame group_prev, Previous group"
+						}
+					}
+				}
+			}
+			"right_bumper"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame group_next, Next group"
+						}
+					}
+				}
+			}
+			"button_escape"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame ship_inventory, Open inventory"
+						}
+					}
+				}
+			}
+			"button_menu"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame ship_screens, Open ship screens (systems / crew / inventory)"
+						}
+					}
+				}
+			}
+			"button_back_left"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame doors_open, Open all doors"
+						}
+					}
+				}
+			}
+			"button_back_right"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame pause, Pause"
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"4"
+		"mode"		"joystick_move"
+		"inputs"
+		{
+			"click"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame autofire, Toggle autofire"
+						}
+					}
+				}
+			}
+		}
+		"gameactions"
+		{
+			"InGame"		"nav_move"
+		}
+	}
+	"group"
+	{
+		"id"		"5"
+		"mode"		"dpad"
+		"inputs"
+		{
+			"dpad_north"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame nav_up, Navigate up"
+						}
+					}
+				}
+			}
+			"dpad_south"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame nav_down, Navigate down"
+						}
+					}
+				}
+			}
+			"dpad_west"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame nav_left, Navigate left"
+						}
+					}
+				}
+			}
+			"dpad_east"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame nav_right, Navigate right"
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"6"
+		"mode"		"absolute_mouse"
+		"inputs"
+		{
+			"click"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame crew_all, Select all crew"
+						}
+					}
+				}
+			}
+		}
+		"gameactions"
+		{
+			"InGame"		"cursor_move"
+		}
+	}
+	"group"
+	{
+		"id"		"7"
+		"mode"		"four_buttons"
+		"inputs"
+		{
+			"button_A"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_select, Menu select"
+							"binding"		"game_action Menus menu_pickup, Menu pick up"
+							"binding"		"game_action Menus menu_drop, Menu drop"
+						}
+					}
+				}
+			}
+			"button_B"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_back, Menu back"
+							"binding"		"game_action Menus menu_put_back, Menu put back"
+						}
+					}
+				}
+			}
+			"button_X"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_alt, Menu secondary"
+						}
+					}
+				}
+			}
+			"button_Y"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_info, Menu info"
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"8"
+		"mode"		"switches"
+		"inputs"
+		{
+			"left_bumper"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_tab_prev, Previous tab"
+						}
+					}
+				}
+			}
+			"right_bumper"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_tab_next, Next tab"
+						}
+					}
+				}
+			}
+			"button_escape"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_escape, Menu escape"
+						}
+					}
+				}
+			}
+			"button_menu"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_escape, Menu escape"
+						}
+					}
+				}
+			}
+			"button_back_right"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_pause, Menu pause"
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"9"
+		"mode"		"joystick_move"
+		"inputs"
+		{
+		}
+		"gameactions"
+		{
+			"Menus"		"menu_nav"
+		}
+	}
+	"group"
+	{
+		"id"		"10"
+		"mode"		"dpad"
+		"inputs"
+		{
+			"dpad_north"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_up, Menu up"
+						}
+					}
+				}
+			}
+			"dpad_south"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_down, Menu down"
+						}
+					}
+				}
+			}
+			"dpad_west"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_left, Menu left"
+						}
+					}
+				}
+			}
+			"dpad_east"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menus menu_right, Menu right"
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"11"
+		"mode"		"absolute_mouse"
+		"inputs"
+		{
+		}
+		"gameactions"
+		{
+			"Menus"		"menu_cursor"
+		}
+	}
+	"preset"
+	{
+		"id"		"0"
+		"name"		"InGame"
+		"group_source_bindings"
+		{
+			"0"		"button_diamond active"
+			"1"		"left_trigger active"
+			"2"		"right_trigger active"
+			"3"		"switch active"
+			"4"		"joystick active"
+			"5"		"dpad active"
+			"6"		"right_joystick active"
+		}
+	}
+	"preset"
+	{
+		"id"		"1"
+		"name"		"Menus"
+		"group_source_bindings"
+		{
+			"7"		"button_diamond active"
+			"8"		"switch active"
+			"9"		"joystick active"
+			"10"		"dpad active"
+			"11"		"right_joystick active"
+		}
+	}
+	"settings"
+	{
+	}
+}

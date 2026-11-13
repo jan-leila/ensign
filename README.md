@@ -155,6 +155,12 @@ works when it is launched through Steam.
 
 ## License
 
-GPL-3.0-or-later (the game struct header is derived from Hyperspace, which is
+Copyright (C) 2026 Leyla Becker. Ensign is free software: you can
+redistribute it and/or modify it under the terms of the GNU General Public
+License, version 3 or (at your option) any later version; see [`LICENSE`](LICENSE).
+It comes with no warranty. Release builds bundle no game files and no
+Hyperspace binaries; the installer downloads Hyperspace from its own releases.
+
+GPL-3.0-or-later is required because the game struct header is derived from Hyperspace, which is
 GPL-3.0-or-later; Steam Input interface declarations are reproduced for ABI
-compatibility, Steamworks is a trademark of Valve Corporation).
+compatibility; Steamworks is a trademark of Valve Corporation).

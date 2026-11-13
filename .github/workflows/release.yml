@@ -49,7 +49,7 @@ jobs:
       - name: Package
         run: nix develop .#ci -c tools/package.sh "${{ steps.version.outputs.version }}"
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: ensign-${{ steps.version.outputs.version }}
           path: dist/*.tar.gz*

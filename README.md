@@ -74,7 +74,38 @@ Switch Pro or generic pad. It is built on the
   you pick up the mouse.
 
 Default bindings and the action list are in [`steam_input/README.md`](steam_input/README.md).
-Install instructions are in [`docs/INSTALL.md`](docs/INSTALL.md).
+## Installing
+
+You need FTL from Steam (the native Linux build, not Proton) and `bash`,
+`curl` and `python3`, which most distributions and SteamOS already have. On a
+Steam Deck, run the commands from a terminal (Konsole) in Desktop Mode. No
+compiler or copy of this repository is needed.
+
+1. **Start from an unmodified FTL.** If the game has been modded before, in
+   Steam right-click FTL > Properties > Installed Files > *Verify integrity of
+   game files*, and clear any `LD_PRELOAD=...` launch option.
+2. **Download and extract a release.** Get the `.tar.gz` from the
+   [releases page](https://github.com/jan-leila/ensign/releases): a versioned
+   release, or **Nightly** for the latest build of `main`. From a terminal:
+
+   ```sh
+   url=$(curl -s https://api.github.com/repos/jan-leila/ensign/releases/tags/nightly \
+         | grep -o 'https://[^"]*linux-x86_64\.tar\.gz' | head -1)
+   curl -LO "$url"
+   tar xzf ensign-*-linux-x86_64.tar.gz
+   cd ensign-*/
+   ```
+3. **Run the installer:** `tools/install.sh`. It downloads Hyperspace, patches
+   `ftl.dat`, adds the launcher preload and installs the Steam Input files,
+   keeping backups. Use `--ftl-dir DIR` if FTL is not in the default Steam
+   library, and `--dry-run` to see what it would do without changing anything.
+4. **Enable Steam Input for FTL:** right-click FTL > Properties > Controller >
+   *Enable Steam Input*, then launch FTL from Steam (launching the game
+   directly does not connect the controller).
+
+To update, run `tools/install.sh` from a newer release; it is safe to re-run.
+To remove Ensign, run `tools/uninstall.sh`, which restores the original files.
+More detail, including building from source, is in [`docs/INSTALL.md`](docs/INSTALL.md).
 
 ## How it works
 
